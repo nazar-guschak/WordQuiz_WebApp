@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+
+  {# ===================== QUIZ SELECTION MODE ===================== #}
+  {% if not quiz_started %}
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0">
+          <div class="card-body p-4 p-md-5 text-center">
+            <h2 class="mb-3">Start a Quiz</h2>
+            <p class="text-muted mb-4">
+              Choose what you want to practice: all words or one of your custom quizzes.
+            </p>
+
+            <form method="get" class="text-start" id="quiz-select-form">
+              <input type="hidden" name="start" value="1">
+
+              <div class="mb-3">
+                <label for="quiz-selector" class="form-label fw-semibold">
+                  Quiz type
+                </label>
+                <select name="quiz_id" id="quiz-selector" class="form-select form-select-lg">
+                  <option value="">
+                    General quiz (all {{ all_word_count }} words)
+                  </option>
+                  {% for quiz in custom_quizzes %}
+                    <option value="{{ quiz.id }}">
+                      {{ quiz.title }} ({{ quiz.words.count }} words)
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg w-100 mt-2">
+                Start Quiz
+              </button>
+
+              <p class="mt-3 mb-0 text-muted small">
+                You can always come back here to change the quiz type.
+              </p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  {% else %}
+  {# ===================== QUIZ MODE ===================== #}
+
+    <div class="text-center mb-4">
+      <h2 class="mb-2">
+        {% if current_quiz %}
+          Quiz: {{ current_quiz.title }}
+        {% else %}
+          General Quiz (all words)
+        {% endif %}
+      </h2>
+      <p class="text-muted mb-0">
+        <a href="{% url 'quiz:quiz' %}" class="small">
+          ← Change quiz type
+        </a>
+      </p>
+    </div>
+
+    {% if current_quiz and progress %}
+      <!-- Progress bar for custom quiz -->
+      <div class="mb-4">
+        <div class="progress" style="height: 24px;">
+          <div
+            class="progress-bar"
+            role="progressbar"
+            style="width: {{ progress.percent }}%;"
+            aria-valuenow="{{ progress.current }}"
+            aria-valuemin="0"
+            aria-valuemax="{{ progress.total }}"
+            id="quiz-progress-bar">
+            {{ progress.current }} / {{ progress.total }}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="d-grid gap-3 col-12 col-md-8 col-lg-6 mx-auto" id="quiz-container">
+
+      <!-- Word / final message -->
+      <div class="card p-4 shadow-sm" id="word-card">
+        {% if correct_answer %}
+          <h3 id="word-text" class="fw-bold mb-0 text-center">
+            {{ correct_answer.original_word }}
+          </h3>
+        {% else %}
+          <h3 id="word-text" class="fw-bold mb-0 text-muted text-center">
+            No words available for this quiz.
+          </h3>
+        {% endif %}
+      </div>
+
+      <!-- Choices -->
+      <div id="choices-container" class="d-grid gap-3">
+        {% for choice in quiz_choices %}
+          <button
+            class="btn btn-outline-primary py-2 fs-5 choice-btn"
+            data-answer="{{ choice.translation }}">
+            {{ choice.translation }}
+          </button>
+        {% endfor %}
+      </div>
+
+      <!-- Next button -->
+      <button id="next-btn" class="btn btn-secondary mt-2" disabled>Next</button>
+
+      <!-- Finish actions (shown only after custom quiz ends) -->
+      <div id="quiz-finish-buttons" class="d-none mt-3 text-center">
+        <button id="retry-btn" class="btn btn-success me-2">
+          Retry this quiz
+        </button>
+        <button id="back-btn" class="btn btn-outline-secondary">
+          Back to quiz selection
+        </button>
+      </div>
+    </div>
+
+    <!-- Hidden correct answer -->
+    {% if correct_answer %}
+      <input type="hidden" id="correct-answer" value="{{ correct_answer.translation }}">
+    {% else %}
+      <input type="hidden" id="correct-answer" value="">
+    {% endif %}
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const nextBtn = document.getElementById("next-btn");
+      const correctAnswerInput = document.getElementById("correct-answer");
+      const wordText = document.getElementById("word-text");
+      const choicesContainer = document.getElementById("choices-container");
+      const progressBar = document.getElementById("quiz-progress-bar");
+      const finishButtons = document.getElementById("quiz-finish-buttons");
+      const retryBtn = document.getElementById("retry-btn");
+      const backBtn = document.getElementById("back-btn");
+
+      // quizId is null for general quiz, or the current custom quiz id
+      const quizId = {% if current_quiz %}{{ current_quiz.id }}{% else %}null{% endif %};
+
+      const baseNextUrl = "{% url 'quiz:next_quiz' %}";
+      const nextQuizUrl = quizId ? `${baseNextUrl}?quiz_id=${quizId}` : baseNextUrl;
+
+      let answered = false;
+
+      function updateProgressBar(current, total, percent) {
+        if (!progressBar) return;
+        progressBar.style.width = `${percent}%`;
+        progressBar.setAttribute("aria-valuenow", current);
+        progressBar.setAttribute("aria-valuemax", total);
+        progressBar.textContent = `${current} / ${total}`;
+      }
+
+      function attachChoiceHandlers() {
+        const buttons = document.querySelectorAll(".choice-btn");
+        if (!buttons.length || !correctAnswerInput.value) return;
+
+        buttons.forEach(btn => {
+          btn.addEventListener("click", async () => {
+            if (answered) return;
+            answered = true;
+
+            const chosen = btn.dataset.answer;
+
+            const response = await fetch("{% url 'quiz:check_answer' %}", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": "{{ csrf_token }}",
+              },
+              body: new URLSearchParams({
+                "chosen": chosen,
+                "correct": correctAnswerInput.value,
+                "quiz_id": quizId || ""
+              })
+            });
+
+            const data = await response.json();
+
+            document.querySelectorAll(".choice-btn").forEach(b => b.disabled = true);
+            btn.classList.remove("btn-outline-primary");
+            btn.classList.add(data.is_correct ? "btn-success" : "btn-danger");
+
+            nextBtn.disabled = false;
+            nextBtn.classList.remove("btn-secondary");
+            nextBtn.classList.add("btn-primary");
+          });
+        });
+      }
+
+      attachChoiceHandlers();
+
+      nextBtn.addEventListener("click", async () => {
+        if (nextBtn.disabled) return;
+
+        const response = await fetch(nextQuizUrl);
+        const data = await response.json();
+
+        // ----- CUSTOM QUIZ FINISHED -----
+        if (data.finished) {
+          const percent = data.total ? Math.round(100 * data.score / data.total) : 0;
+          wordText.textContent = `Finished! Score: ${data.score} / ${data.total} (${percent}%)`;
+          choicesContainer.innerHTML = "";
+
+          // Hide Next, show Retry/Back
+          nextBtn.classList.add("d-none");
+          finishButtons.classList.remove("d-none");
+
+          if (progressBar) {
+            updateProgressBar(data.total, data.total, 100);
+          }
+          return;
+        }
+
+        // ----- NEXT QUESTION (general or custom) -----
+        wordText.textContent = data.word;
+        correctAnswerInput.value = data.correct;
+
+        choicesContainer.innerHTML = "";
+        data.choices.forEach(choice => {
+          const btn = document.createElement("button");
+          btn.className = "btn btn-outline-primary py-2 fs-5 choice-btn";
+          btn.dataset.answer = choice;
+          btn.textContent = choice;
+          choicesContainer.appendChild(btn);
+        });
+
+        answered = false;
+        nextBtn.disabled = true;
+        nextBtn.classList.remove("btn-primary");
+        nextBtn.classList.add("btn-secondary");
+        nextBtn.textContent = "Next";
+
+        if (quizId && typeof data.current !== "undefined") {
+          updateProgressBar(data.current, data.total, data.progress_percent);
+        }
+
+        attachChoiceHandlers();
+      });
+
+      // Retry this quiz (only meaningful for custom quizzes)
+      if (retryBtn) {
+        retryBtn.addEventListener("click", () => {
+          if (!quizId) {
+            // General quiz never really "finishes", but in case:
+            window.location.href = "{% url 'quiz:quiz' %}?start=1";
+          } else {
+            window.location.href = "{% url 'quiz:quiz' %}?start=1&quiz_id=" + quizId;
+          }
+        });
+      }
+
+      // Back to quiz selection
+      if (backBtn) {
+        backBtn.addEventListener("click", () => {
+          window.location.href = "{% url 'quiz:quiz' %}";
+        });
+      }
+    });
+    </script>
+
+  {% endif %}
+
+</div>
+{% endblock %}

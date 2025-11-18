@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5"
+     id="quiz-manage-root"
+     data-quiz-id="{{ quiz.id }}"
+     data-add-url="{% url 'quiz:quiz_add_words' quiz.id %}"
+     data-remove-url="{% url 'quiz:quiz_remove_word' quiz.id %}">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Manage Quiz: "{{ quiz.title }}"</h2>
+    <a href="{% url 'quiz:word_list' %}" class="btn btn-outline-secondary">
+      ← Back to Words & Quizzes
+    </a>
+  </div>
+
+  <!-- Search & Add + Bulk delete -->
+  <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <div class="input-group me-2 flex-grow-1">
+      <span class="input-group-text">🔍</span>
+      <input
+        type="text"
+        id="quiz-word-search"
+        class="form-control"
+        placeholder="Search within this quiz (original or translation)..."
+      >
+    </div>
+    <button id="open-add-words-modal-btn" class="btn btn-success flex-shrink-0">
+      + Add Words
+    </button>
+    <button id="bulk-delete-btn" class="btn btn-danger flex-shrink-0 d-none" disabled>
+      Delete selected
+    </button>
+  </div>
+
+  <!-- Words in this quiz -->
+  <div class="table-responsive">
+    <table class="table table-striped table-hover shadow-sm bg-white rounded">
+      <thead class="table-primary">
+        <tr>
+          <th style="width:40px;">
+            <input type="checkbox" id="quiz-word-select-all">
+          </th>
+          <th>Original Word</th>
+          <th>Translation</th>
+          <th style="width: 120px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="quiz-word-table-body">
+        {% for word in quiz_words %}
+          <tr data-word-id="{{ word.id }}">
+            <td>
+              <input type="checkbox" class="quiz-word-checkbox">
+            </td>
+            <td>{{ word.original_word }}</td>
+            <td>{{ word.translation }}</td>
+            <td class="action-buttons">
+              <button class="btn btn-sm btn-danger remove-word-btn">
+                Delete
+              </button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted">
+              This quiz has no words yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Add Words Modal -->
+  <div class="modal fade" id="addWordsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Words to "{{ quiz.title }}"</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Optional search inside modal -->
+          <div class="input-group mb-3">
+            <span class="input-group-text">🔍</span>
+            <input
+              type="text"
+              id="available-word-search"
+              class="form-control"
+              placeholder="Filter available words..."
+            >
+          </div>
+
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th style="width:40px;">
+                    <input type="checkbox" id="available-word-select-all">
+                  </th>
+                  <th>Original Word</th>
+                  <th>Translation</th>
+                </tr>
+              </thead>
+              <tbody id="available-word-table-body">
+                {% for word in all_words %}
+                  <tr>
+                    <td>
+                      <input type="checkbox"
+                             class="available-word-checkbox"
+                             value="{{ word.id }}">
+                    </td>
+                    <td>{{ word.original_word }}</td>
+                    <td>{{ word.translation }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <p class="text-muted mb-0">
+            Selected words will be added to this quiz.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="add-words-confirm-btn">
+            Add Selected Words
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div> <!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // --- Helper for CSRF ---
+  function getCSRFToken() {
+    const cookieValue = document.cookie
+      .split("; ")
+      .find(row => row.startsWith("csrftoken="));
+    return cookieValue ? cookieValue.split("=")[1] : "";
+  }
+
+  const root = document.getElementById("quiz-manage-root");
+  const addWordsUrl = root.dataset.addUrl;
+  const removeWordUrl = root.dataset.removeUrl;
+
+  const quizWordSearchInput = document.getElementById("quiz-word-search");
+  const quizWordTableBody = document.getElementById("quiz-word-table-body");
+  const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
+  const selectAllQuizWords = document.getElementById("quiz-word-select-all");
+
+  // ==================== Helpers for selection / bulk delete ====================
+
+  function getRowCheckboxes() {
+    return quizWordTableBody.querySelectorAll(".quiz-word-checkbox");
+  }
+
+  function getSelectedWordIds() {
+    const ids = [];
+    quizWordTableBody.querySelectorAll("tr[data-word-id]").forEach(row => {
+      const cb = row.querySelector(".quiz-word-checkbox");
+      if (cb && cb.checked) {
+        ids.push(row.dataset.wordId);
+      }
+    });
+    return ids;
+  }
+
+  function updateBulkDeleteState() {
+    const selectedIds = getSelectedWordIds();
+    const count = selectedIds.length;
+
+    if (count > 0) {
+      bulkDeleteBtn.classList.remove("d-none");
+      bulkDeleteBtn.disabled = false;
+      bulkDeleteBtn.textContent = `Delete selected (${count})`;
+    } else {
+      bulkDeleteBtn.classList.add("d-none");
+      bulkDeleteBtn.disabled = true;
+      bulkDeleteBtn.textContent = "Delete selected";
+    }
+
+    // update header "select all" checkbox
+    const allCbs = getRowCheckboxes();
+    if (!allCbs.length) {
+      selectAllQuizWords.checked = false;
+    } else {
+      const allChecked = Array.from(allCbs).every(cb => cb.checked);
+      selectAllQuizWords.checked = allChecked;
+    }
+  }
+
+  // "Select all" in quiz table
+  selectAllQuizWords.addEventListener("change", () => {
+    const checked = selectAllQuizWords.checked;
+    getRowCheckboxes().forEach(cb => {
+      cb.checked = checked;
+    });
+    updateBulkDeleteState();
+  });
+
+  // Listen for individual row checkbox changes
+  quizWordTableBody.addEventListener("change", (e) => {
+    if (e.target.classList.contains("quiz-word-checkbox")) {
+      updateBulkDeleteState();
+    }
+  });
+
+  // Bulk delete button
+  bulkDeleteBtn.addEventListener("click", () => {
+    const selectedIds = getSelectedWordIds();
+    if (!selectedIds.length) return;
+
+    if (!confirm(`Remove ${selectedIds.length} word(s) from this quiz?`)) return;
+
+    const csrfToken = getCSRFToken();
+
+    // Do all deletes in parallel, then reload
+    Promise.all(
+      selectedIds.map(id => {
+        const formData = new FormData();
+        formData.append("word_id", id);
+
+        return fetch(removeWordUrl, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          credentials: "same-origin",
+        }).then(r => r.json());
+      })
+    ).then(results => {
+      const anyError = results.some(res => !res.success);
+      if (anyError) {
+        alert("Some words could not be removed. Please refresh and try again.");
+      }
+      window.location.reload();
+    }).catch(err => {
+      console.error("Bulk remove error:", err);
+      alert("Network error while removing words.");
+    });
+  });
+
+  // ==================== Search within quiz words ====================
+
+  if (quizWordSearchInput && quizWordTableBody) {
+    quizWordSearchInput.addEventListener("input", () => {
+      const term = quizWordSearchInput.value.toLowerCase();
+
+      quizWordTableBody.querySelectorAll("tr").forEach(row => {
+        // Skip "empty" row
+        if (!row.dataset.wordId) {
+          return;
+        }
+
+        const cells = row.querySelectorAll("td");
+        // cells[0] = checkbox, cells[1] = original, cells[2] = translation
+        if (cells.length < 3) return;
+
+        const original = cells[1].textContent.toLowerCase();
+        const translation = cells[2].textContent.toLowerCase();
+        const match = original.includes(term) || translation.includes(term);
+
+        row.style.display = match ? "" : "none";
+      });
+    });
+  }
+
+  // ==================== Remove a single word from quiz ====================
+
+  quizWordTableBody.addEventListener("click", (e) => {
+    if (!e.target.classList.contains("remove-word-btn")) return;
+
+    const row = e.target.closest("tr[data-word-id]");
+    if (!row) return;
+
+    const wordId = row.dataset.wordId;
+
+    if (!confirm("Remove this word from the quiz?")) return;
+
+    const formData = new FormData();
+    formData.append("word_id", wordId);
+
+    fetch(removeWordUrl, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-CSRFToken": getCSRFToken(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        row.remove();
+        updateBulkDeleteState();
+      } else {
+        alert(data.error || "Failed to remove word from quiz.");
+      }
+    })
+    .catch(err => {
+      console.error("Remove word error:", err);
+      alert("Network error while removing word.");
+    });
+  });
+
+  // ==================== Add words modal ====================
+
+  const addWordsBtn = document.getElementById("open-add-words-modal-btn");
+  const addWordsModalEl = document.getElementById("addWordsModal");
+  const addWordsModal = new bootstrap.Modal(addWordsModalEl);
+
+  const availableSearchInput = document.getElementById("available-word-search");
+  const availableTableBody = document.getElementById("available-word-table-body");
+  const selectAllAvailable = document.getElementById("available-word-select-all");
+  const confirmAddBtn = document.getElementById("add-words-confirm-btn");
+
+  addWordsBtn.addEventListener("click", () => {
+    // reset filters & checkboxes
+    availableSearchInput.value = "";
+    selectAllAvailable.checked = false;
+    availableTableBody.querySelectorAll("tr").forEach(row => {
+      row.style.display = "";
+      const cb = row.querySelector(".available-word-checkbox");
+      if (cb) cb.checked = false;
+    });
+    addWordsModal.show();
+  });
+
+  // Filter list of available words in modal
+  availableSearchInput.addEventListener("input", () => {
+    const term = availableSearchInput.value.toLowerCase();
+
+    availableTableBody.querySelectorAll("tr").forEach(row => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length < 3) return;
+      const original = cells[1].textContent.toLowerCase();
+      const translation = cells[2].textContent.toLowerCase();
+      const match = original.includes(term) || translation.includes(term);
+      row.style.display = match ? "" : "none";
+    });
+  });
+
+  // Select all available words
+  selectAllAvailable.addEventListener("change", () => {
+    availableTableBody.querySelectorAll(".available-word-checkbox").forEach(cb => {
+      cb.checked = selectAllAvailable.checked;
+    });
+  });
+
+  // Confirm add selected words
+  confirmAddBtn.addEventListener("click", () => {
+    const selected = [];
+    availableTableBody.querySelectorAll(".available-word-checkbox:checked").forEach(cb => {
+      selected.push(cb.value);
+    });
+
+    if (!selected.length) {
+      alert("Please select at least one word.");
+      return;
+    }
+
+    const formData = new FormData();
+    selected.forEach(id => formData.append("word_ids[]", id));
+
+    fetch(addWordsUrl, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-CSRFToken": getCSRFToken(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert(data.error || "Failed to add words.");
+      }
+    })
+    .catch(err => {
+      console.error("Add words error:", err);
+      alert("Network error while adding words.");
+    });
+  });
+
+  // Initial state in case some checkboxes come pre-checked (unlikely, but safe)
+  updateBulkDeleteState();
+});
+</script>
+{% endblock %}
