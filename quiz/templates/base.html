@@ -53,6 +53,64 @@
         opacity: 1;
         visibility: visible;
     }
+
+
+    /* === Matching quiz styles === */
+
+    .match-item {
+        padding-top: 0.9rem;
+        padding-bottom: 0.9rem;
+        font-size: 1.05rem;
+    }
+
+
+    .match-selected {
+        border-width: 2px;
+        box-shadow: 0 0 0 2px rgba(13,110,253,0.35);
+        background-color: rgba(13,110,253,0.06);
+    }
+
+    /* base paired state (before correctness is shown) */
+    .match-paired {
+        color: #0b3b73;
+    }
+
+    /* Four distinct pastel hues */
+    .match-pair-1 {
+        background-color: #E8D7F1;  /* light blue */
+        border-color: #90caf9;
+    }
+
+    .match-pair-2 {
+        background-color: #D3BCCC;  /* light cyan */
+        border-color: #80deea;
+    }
+
+    .match-pair-3 {
+        background-color: #A167A5;  /* light green */
+        border-color: #a5d6a7;
+    }
+
+    .match-pair-4 {
+        background-color: #C196FB;  /* light purple */
+        border-color: #ce93d8;
+    }
+
+    /* After Check Answer */
+    .match-correct {
+        background-color: #d1e7dd !important;
+        border-color: #badbcc !important;
+    }
+
+    .match-wrong {
+        background-color: #f8d7da !important;
+        border-color: #f5c2c7 !important;
+    }
+
+    .match-disabled {
+        pointer-events: none;
+        opacity: 0.9;
+    }
 </style>
 </head>
 <body>
@@ -89,5 +147,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

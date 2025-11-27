@@ -1,0 +1,31 @@
+{# templates/quiz/quiz.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5"
+     id="quiz-page-root"
+     data-next-url="{% url 'quiz:next_quiz' %}"
+     data-check-url="{% url 'quiz:check_answer' %}"
+     data-quiz-url="{% url 'quiz:quiz' %}"
+     data-selected-language="{{ selected_language|default:'' }}"
+     data-quiz-id="{% if current_quiz %}{{ current_quiz.id }}{% endif %}">
+
+  {% if not quiz_started %}
+
+    {# ===================== QUIZ SELECTION SCREEN ===================== #}
+    {% include "quiz/partials/quiz/_selection.html" %}
+
+  {% else %}
+
+    {# ===================== QUIZ RUN SCREEN ===================== #}
+    {% include "quiz/partials/quiz/_run.html" %}
+
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'quiz/js/quiz.js' %}"></script>
+{% endblock %}

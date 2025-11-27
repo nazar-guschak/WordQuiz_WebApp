@@ -1,0 +1,65 @@
+{# templates/quiz/partials/quizzes/_quizzes_tab.html #}
+
+<div class="tab-pane fade"
+     id="quizzes-pane"
+     role="tabpanel"
+     aria-labelledby="quizzes-tab">
+
+  <!-- Search bar -->
+  <div class="d-flex mb-3 align-items-center">
+    <div class="input-group me-2 flex-grow-1">
+      <span class="input-group-text">🔍</span>
+      <input
+        type="text"
+        id="quiz-search-input"
+        class="form-control"
+        placeholder="Search quizzes..."
+      >
+    </div>
+    <button id="quiz-add-btn" class="btn btn-success flex-shrink-0">
+      + New Quiz
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-responsive">
+    <table class="table table-striped table-hover shadow-sm bg-white rounded">
+      <thead class="table-primary">
+        <tr>
+          <th>Name</th>
+          <th>№ of Words</th>
+          <th style="width: 150px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="quiz-table-body">
+        {% for quiz in custom_quizzes %}
+          <tr data-id="{{ quiz.id }}">
+            <td>
+              <a href="{% url 'quiz:custom_quiz_detail' quiz.id %}">
+                {{ quiz.title }}
+              </a>
+            </td>
+            <td>{{ quiz.words.count }}</td>
+            <td class="action-buttons">
+              <a href="{% url 'quiz:custom_quiz_detail' quiz.id %}"
+                 class="btn btn-sm btn-warning">
+                Edit
+              </a>
+              <button
+                class="btn btn-sm btn-danger delete-btn"
+                data-delete-url="{% url 'quiz:custom_quiz_delete' quiz.id %}">
+                Delete
+              </button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="no-quizzes-row">
+            <td colspan="3" class="text-center text-muted">
+              No quizzes found.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

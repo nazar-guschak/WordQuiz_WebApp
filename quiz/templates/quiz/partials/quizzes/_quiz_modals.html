@@ -1,0 +1,32 @@
+{# templates/quiz/partials/quizzes/_quiz_modals.html #}
+
+<div class="modal fade" id="quizAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Create New Quiz</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form
+          id="quiz-add-form"
+          method="post"
+          data-create-url="{% url 'quiz:create_quiz' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Quiz Title</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary" data-action="close">
+              Save &amp; Close
+            </button>
+            <button type="submit" class="btn btn-success" data-action="add-words">
+              Save &amp; Add Words
+            </button>
+          </div>
+        </form>
+      </div>
+    </div> <!-- closes modal-content -->
+  </div> <!-- closes modal-dialog -->
+</div> <!-- closes modal -->

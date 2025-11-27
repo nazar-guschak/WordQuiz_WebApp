@@ -1,0 +1,74 @@
+{# templates/quiz/partials/quiz/_run.html #}
+
+<div class="text-center mb-2">
+  <h2 class="mb-2">
+    {% if current_quiz %}
+      Quiz: {{ current_quiz.title }}
+    {% else %}
+      General Quiz
+      {% if selected_language %}
+        ({{ selected_language }})
+      {% else %}
+        (all words)
+      {% endif %}
+    {% endif %}
+  </h2>
+  <p class="text-muted mb-0" id="change-quiz-link-wrapper">
+    <a href="{% url 'quiz:quiz' %}" class="small">
+      ← Change quiz type
+    </a>
+  </p>
+</div>
+
+<div class="d-grid gap-3 col-12 col-md-8 col-lg-6 mx-auto" id="quiz-container">
+
+  <!-- Word / final message -->
+  <div class="card p-4 shadow-sm" id="word-card">
+    {% if correct_answer %}
+      <h3 id="word-text" class="fw-bold mb-0 text-center">
+        {{ correct_answer.original_word }}
+      </h3>
+    {% else %}
+      <h3 id="word-text" class="fw-bold mb-0 text-muted text-center">
+        No words available for this quiz.
+      </h3>
+    {% endif %}
+  </div>
+
+  <!-- Choices / matching UI will be injected here -->
+  <div id="choices-container" class="d-grid gap-3">
+    {% for choice in quiz_choices %}
+      <button
+        class="btn btn-outline-primary py-2 fs-5 choice-btn"
+        data-answer="{{ choice.translation }}">
+        {{ choice.translation }}
+      </button>
+    {% endfor %}
+  </div>
+
+  <!-- Single button: "Check answer" for match quiz, "Next" for regular quiz -->
+  <button id="next-btn" class="btn btn-secondary mt-2" disabled>Next</button>
+
+  <!-- Finish actions (shown only after custom quiz ends) -->
+  <div id="quiz-finish-buttons" class="d-none mt-3 text-center">
+    <button id="retry-btn" class="btn btn-success me-2">
+      Retry this quiz
+    </button>
+    <button id="back-btn" class="btn btn-outline-secondary">
+      Back to quiz selection
+    </button>
+  </div>
+
+</div>
+
+<!-- Hidden correct answer -->
+<input
+  type="hidden"
+  id="correct-answer"
+  value="{% if correct_answer %}{{ correct_answer.translation }}{% endif %}">
+
+<!-- Hidden word id -->
+<input
+  type="hidden"
+  id="word-id"
+  value="{% if correct_answer %}{{ correct_answer.id }}{% endif %}">
