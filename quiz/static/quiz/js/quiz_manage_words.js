@@ -177,9 +177,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (quizWordTableBody) {
     quizWordTableBody.addEventListener("click", (e) => {
-      if (!e.target.classList.contains("remove-word-btn")) return;
+      // support clicks directly on the icon or any wrapper that has this class
+      const removeBtn = e.target.closest(".remove-word-btn");
+      if (!removeBtn) return;
 
-      const row = e.target.closest("tr[data-word-id]");
+      const row = removeBtn.closest("tr[data-word-id]");
       if (!row) return;
 
       const wordId = row.dataset.wordId;
@@ -261,6 +263,13 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAvailableWordCount();
   }
 
+  if (availableSearchInput) {
+    availableSearchInput.addEventListener("input", applyAvailableFilters);
+  }
+  if (availableLanguageFilter) {
+    availableLanguageFilter.addEventListener("change", applyAvailableFilters);
+  }
+
   if (addWordsBtn && addWordsModal && availableTableBody) {
     addWordsBtn.addEventListener("click", () => {
       // reset filters & checkboxes
@@ -277,13 +286,6 @@ document.addEventListener("DOMContentLoaded", () => {
       updateAvailableWordCount();
       addWordsModal.show();
     });
-  }
-
-  if (availableSearchInput) {
-    availableSearchInput.addEventListener("input", applyAvailableFilters);
-  }
-  if (availableLanguageFilter) {
-    availableLanguageFilter.addEventListener("change", applyAvailableFilters);
   }
 
   // Select all available words

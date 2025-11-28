@@ -5,9 +5,9 @@
      role="tabpanel"
      aria-labelledby="quizzes-tab">
 
-  <!-- Search bar -->
-  <div class="d-flex mb-3 align-items-center">
-    <div class="input-group me-2 flex-grow-1">
+  {# ========== Search + Add Quiz ========== #}
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <div class="input-group flex-grow-1">
       <span class="input-group-text">🔍</span>
       <input
         type="text"
@@ -16,45 +16,69 @@
         placeholder="Search quizzes..."
       >
     </div>
+
     <button id="quiz-add-btn" class="btn btn-success flex-shrink-0">
       + New Quiz
     </button>
   </div>
 
-  <!-- Table -->
-  <div class="table-responsive">
-    <table class="table table-striped table-hover shadow-sm bg-white rounded">
+  {# ========== Table ========== #}
+  <div class="table-responsive table-wrapper shadow-lg">
+    <table class="table table-striped table-hover table-sm mb-0">
       <thead class="table-primary">
         <tr>
           <th>Name</th>
           <th>№ of Words</th>
-          <th style="width: 150px;">Actions</th>
+          <th class="text-center" style="width: 90px;"></th>
         </tr>
       </thead>
+
       <tbody id="quiz-table-body">
         {% for quiz in custom_quizzes %}
           <tr data-id="{{ quiz.id }}">
             <td>
-              <a href="{% url 'quiz:custom_quiz_detail' quiz.id %}">
+              <a
+                href="{% url 'quiz:custom_quiz_detail' quiz.id %}"
+                class="text-decoration-none"
+              >
                 {{ quiz.title }}
               </a>
             </td>
+
             <td>{{ quiz.words.count }}</td>
-            <td class="action-buttons">
-              <a href="{% url 'quiz:custom_quiz_detail' quiz.id %}"
-                 class="btn btn-sm btn-warning">
-                Edit
-              </a>
-              <button
-                class="btn btn-sm btn-danger delete-btn"
-                data-delete-url="{% url 'quiz:custom_quiz_delete' quiz.id %}">
-                Delete
-              </button>
+
+            <td class="text-center">
+              <div class="d-flex justify-content-center gap-2">
+
+                {# Edit #}
+                <button
+                  type="button"
+                  class="icon-action edit"
+                  title="Edit quiz"
+                  aria-label="Edit quiz"
+                  onclick="window.location.href='{% url 'quiz:custom_quiz_detail' quiz.id %}'"
+                >
+                  <i class="bi bi-pencil-square fs-5"></i>
+                </button>
+
+                {# Delete #}
+                <button
+                  type="button"
+                  class="icon-action delete delete-btn"
+                  title="Delete quiz"
+                  aria-label="Delete quiz"
+                  data-delete-url="{% url 'quiz:custom_quiz_delete' quiz.id %}"
+                >
+                  <i class="bi bi-trash3 fs-5"></i>
+                </button>
+
+              </div>
             </td>
           </tr>
+
         {% empty %}
-          <tr class="no-quizzes-row">
-            <td colspan="3" class="text-center text-muted">
+          <tr>
+            <td colspan="3" class="text-center text-muted py-3">
               No quizzes found.
             </td>
           </tr>

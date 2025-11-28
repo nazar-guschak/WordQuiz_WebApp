@@ -1,9 +1,9 @@
 {# templates/quiz/partials/manage/_quiz_words_table.html #}
 
-<!-- Filter + Search + Add + Bulk delete -->
+{# ========== Filter + Search + Add + Bulk delete ========== #}
 <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
   <div class="d-flex flex-grow-1 gap-2">
-    <!-- Language dropdown (left) -->
+    {# Language dropdown (left) #}
     <div class="flex-shrink-0" style="min-width: 180px;">
       <select id="quiz-language-filter" class="form-select">
         <option value="">All languages</option>
@@ -12,7 +12,8 @@
         {% endfor %}
       </select>
     </div>
-    <!-- Search input -->
+
+    {# Search input #}
     <div class="input-group flex-grow-1">
       <span class="input-group-text">🔍</span>
       <input
@@ -27,45 +28,66 @@
   <button id="open-add-words-modal-btn" class="btn btn-success flex-shrink-0">
     + Add Words
   </button>
-  <button id="bulk-delete-btn" class="btn btn-danger flex-shrink-0 d-none" disabled>
+  <button
+    id="bulk-delete-btn"
+    class="btn btn-danger flex-shrink-0 d-none"
+    disabled
+  >
     Delete selected
   </button>
 </div>
 
-<!-- Dynamic word count for quiz words -->
+{# ========== Dynamic word count for quiz words ========== #}
 <p class="text-muted mb-3" id="quiz-word-count-text">
   Showing
   <span id="quiz-word-count-number">{{ quiz_words|length }}</span>
   word{% if quiz_words|length != 1 %}s{% endif %}
 </p>
 
-<!-- Words in this quiz -->
-<div class="table-responsive">
-  <table class="table table-striped table-hover shadow-sm bg-white rounded">
+{# ========== Words in this quiz ========== #}
+<div class="table-responsive table-wrapper shadow-lg">
+  <table class="table table-striped table-hover table-sm table-no-gap mb-0">
     <thead class="table-primary">
       <tr>
         <th style="width:40px;">
           <input type="checkbox" id="quiz-word-select-all">
         </th>
-        <th>Original Word</th>
-        <th>Translation</th>
-        <th>Language</th>
-        <th style="width: 120px;">Actions</th>
+
+        <th>orig</th>
+        <th>tr</th>
+
+        {# Language column hidden on mobile #}
+        <th class="d-none d-sm-table-cell">Lang</th>
+
+        <th class="text-center" style="width: 90px;"></th>
       </tr>
     </thead>
+
     <tbody id="quiz-word-table-body">
       {% for word in quiz_words %}
         <tr data-word-id="{{ word.id }}" data-language="{{ word.language }}">
           <td>
             <input type="checkbox" class="quiz-word-checkbox">
           </td>
+
           <td>{{ word.original_word }}</td>
           <td>{{ word.translation }}</td>
-          <td>{{ word.get_language_display }}</td>
-          <td class="action-buttons">
-            <button class="btn btn-sm btn-danger remove-word-btn">
-              Delete
-            </button>
+
+          {# Hidden on mobile #}
+          <td class="d-none d-sm-table-cell">
+            {{ word.language|upper }}
+          </td>
+
+          <td class="text-center">
+            <div class="d-flex justify-content-center">
+              <i
+                class="bi bi-trash3 fs-5 icon-action delete remove-word-btn"
+                role="button"
+                tabindex="0"
+                title="Remove from quiz"
+                aria-label="Remove word from this quiz"
+              ></i>
+            </div>
           </td>
         </tr>
       {% empty %}

@@ -118,10 +118,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- Render words table (for AJAX search) ---
   function renderTable(words) {
     if (!tableBody) return;
 
     tableBody.innerHTML = "";
+
     if (words.length > 0) {
       words.forEach(word => {
         const row = document.createElement("tr");
@@ -135,11 +137,22 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${word.original_word}</td>
           <td>${word.translation}</td>
           <td>${languageText}</td>
-          <td class="action-buttons">
-            <button class="btn btn-sm btn-warning edit-btn">Edit</button>
-            <button class="btn btn-sm btn-danger delete-btn">Delete</button>
+          <td class="action-buttons text-center">
+            <div class="d-flex gap-2 justify-content-center">
+              <button type="button"
+                      class="icon-action edit edit-btn"
+                      title="Edit word">
+                <i class="bi bi-pencil-square fs-5"></i>
+              </button>
+              <button type="button"
+                      class="icon-action delete delete-btn"
+                      title="Delete word">
+                <i class="bi bi-trash3 fs-5"></i>
+              </button>
+            </div>
           </td>
         `;
+
         tableBody.appendChild(row);
       });
     } else {
@@ -214,8 +227,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!row) return;
       const id = row.dataset.id;
 
+      const editButton = e.target.closest(".edit-btn");
+      const deleteButton = e.target.closest(".delete-btn");
+
       // Edit
-      if (e.target.classList.contains("edit-btn")) {
+      if (editButton) {
         if (!editModal) return;
         if (editId) editId.value = id;
         if (editOriginal) editOriginal.value = row.children[1].textContent.trim();
@@ -224,10 +240,11 @@ document.addEventListener("DOMContentLoaded", () => {
           editLanguageSelect.value = row.dataset.language || "";
         }
         editModal.show();
+        return;
       }
 
       // Delete
-      if (e.target.classList.contains("delete-btn")) {
+      if (deleteButton) {
         if (!confirm("Delete this word?")) return;
 
         fetch(`/word_list/${id}/delete/`, {
@@ -542,15 +559,21 @@ document.addEventListener("DOMContentLoaded", () => {
               <a href="${quiz.detail_url}">${quiz.title}</a>
             </td>
             <td>${quiz.word_count}</td>
-            <td class="action-buttons">
-              <a href="${quiz.detail_url}" class="btn btn-sm btn-warning">
-                Edit
-              </a>
-              <button
-                class="btn btn-sm btn-danger delete-btn"
-                data-delete-url="${quiz.delete_url || ""}">
-                Delete
-              </button>
+            <td class="action-buttons text-center">
+              <div class="d-flex gap-2 justify-content-center">
+                <button type="button"
+                        class="icon-action edit"
+                        title="Edit quiz"
+                        onclick="window.location.href='${quiz.detail_url}'">
+                  <i class="bi bi-pencil-square fs-5"></i>
+                </button>
+                <button type="button"
+                        class="icon-action delete delete-btn"
+                        data-delete-url="${quiz.delete_url || ""}"
+                        title="Delete quiz">
+                  <i class="bi bi-trash3 fs-5"></i>
+                </button>
+              </div>
             </td>
           `;
           quizTableBody.appendChild(tr);
@@ -592,7 +615,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = deleteBtn.closest("tr[data-id]");
       if (!row) return;
 
-      const quizId = row.dataset.id;
       const deleteUrl = deleteBtn.dataset.deleteUrl;
 
       if (!deleteUrl) {
