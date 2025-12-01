@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-4">
+  <h1 class="mb-3">Preview import</h1>
+  <p class="text-muted">
+    Check the words below. If everything looks good, click
+    <strong>Import words</strong>.
+  </p>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      {% if rows %}
+        <div class="table-responsive">
+          <table class="table table-striped align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Original word</th>
+                <th>Translation</th>
+                <th>Language</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ row.original_word }}</td>
+                  <td>{{ row.translation }}</td>
+                  <td>{{ row.language }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <form method="post" action="{% url 'quiz:confirm_import' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success">
+            Import words
+          </button>
+          <a href="{% url 'quiz:upload_words' %}" class="btn btn-outline-secondary ms-2">
+            Start over
+          </a>
+        </form>
+      {% else %}
+        <p>No rows to preview.</p>
+        <a href="{% url 'quiz:upload_words' %}" class="btn btn-primary">
+          Upload another file
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

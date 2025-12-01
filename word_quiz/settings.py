@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     'quiz',
+    'accounts',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -53,6 +54,26 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'word_quiz.urls'
+
+# ============================================================
+# Authentication settings
+# ============================================================
+
+# URL where @login_required redirects users who are not logged in
+LOGIN_URL = "accounts:login"   # or "login" if you don't use namespace
+
+# After successful login, where to redirect next?
+LOGIN_REDIRECT_URL = "quiz:index"
+
+# After logging out, where should the user be sent?
+LOGOUT_REDIRECT_URL = "index"
+
+
+# ============================================================
+# Email backend for development (no real emails)
+# ============================================================
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 TEMPLATES = [
     {

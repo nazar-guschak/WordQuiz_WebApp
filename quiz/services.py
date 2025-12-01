@@ -1,6 +1,13 @@
-from quiz.models import Word, CustomQuiz
 from django.db.models import F
 import random
+
+import os
+import pandas as pd
+from django.core.exceptions import ValidationError
+
+
+ALLOWED_EXTENSIONS = [".csv", ".xls", ".xlsx"]
+
 
 def word_priority(word) -> float:
     times = word.times_quizzed
@@ -98,3 +105,84 @@ def generate_matching_quiz(words_source, count=4):
 
     return left_words, right_words
 
+
+# ============================================================
+# File import services (CSV + Excel)
+# ============================================================
+
+
+def parse_words_file(uploaded_file):
+    """
+    Parse an uploaded CSV or Excel file and return a list of dictionaries:
+    [
+        {"original_word": "...", "translation": "...", "language": "..."},
+        ...
+    ]
+
+    Raises ValidationError with a user-friendly message on failure.
+    """
+    filename = uploaded_file.name
+    ext = os.path.splitext(filename)[1].lower()
+
+    # ---------- Validate extension ----------
+    if ext not in ALLOWED_EXTENSIONS:
+        raise ValidationError("Unsupported file type. Upload CSV or Excel.")
+
+    # ---------- Load into pandas ----------
+    try:
+        if ext == ".csv":
+            # Handle UTF-8 and other encodings gracefully
+            df = pd.read_csv(uploaded_file, encoding="utf-8", engine="python")
+        else:
+            df = pd.read_excel(uploaded_file)
+    except Exception:
+        raise ValidationError("Could not read the file. Make sure it is a valid CSV/Excel file.")
+
+    if df.empty:
+        raise ValidationError("The file appears to be empty.")
+
+    # ---------- Normalise column names ----------
+    df = df.rename(columns={
+        "word": "original_word",
+        "source": "original_word",
+        "original_word": "original_word",
+
+        "translation": "translation",
+        "target": "translation",
+
+        "language": "language",
+        "lang": "language",
+        "lang_code": "language",
+    })
+
+    # ---------- Required columns ----------
+    if "original_word" not in df.columns or "translation" not in df.columns:
+        raise ValidationError(
+            "File must contain 'original_word' and 'translation' columns "
+            "(or equivalent names like 'word', 'target')."
+        )
+
+    # Language is optional; default to blank
+    if "language" not in df.columns:
+        df["language"] = ""
+
+    # ---------- Keep only relevant columns ----------
+    df = df[["original_word", "translation", "language"]]
+
+    # ---------- Clean & normalize values ----------
+    # Convert to string and trim whitespace
+    for col in ["original_word", "translation", "language"]:
+        df[col] = df[col].astype(str).str.strip()
+
+    # Remove duplicate rows inside the uploaded file
+    df = df.drop_duplicates(subset=["original_word", "translation", "language"])
+
+    # Drop rows missing essential fields
+    df = df[df["original_word"] != ""]
+    df = df[df["translation"] != ""]
+
+    if df.empty:
+        raise ValidationError("No valid word entries found in the file.")
+
+    # ---------- Convert to list of dictionaries ----------
+    return df.to_dict(orient="records")

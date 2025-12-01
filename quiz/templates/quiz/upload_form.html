@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+  <div class="card shadow-sm p-4" style="width: 100%; max-width: 500px;">
+
+    <h2 class="text-center mb-3">Import Words</h2>
+
+    <p class="text-muted text-center mb-4">
+      Upload a CSV or Excel file with columns like:<br>
+      <code>original_word, translation, language</code>
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label for="id_file" class="form-label">Choose file</label>
+        <input
+          type="file"
+          name="file"
+          id="id_file"
+          class="form-control"
+          accept=".csv,.xls,.xlsx"
+          required
+        >
+      </div>
+
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'quiz:word_list' %}" class="btn btn-outline-secondary">
+          Cancel
+        </a>
+
+        <button type="submit" class="btn btn-primary">
+          Upload &amp; Preview
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

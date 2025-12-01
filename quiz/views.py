@@ -1,11 +1,42 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.http import JsonResponse, Http404
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count
+from django.contrib import messages
+
+from .models import *
+from .services import *
 import json
 
-from .services import *   # used for read_words(Word)
-from .models import *     # Word, CustomQuiz, etc.
+
+
+# ============================================================
+# Helper: choose base queryset depending on auth
+# ============================================================
+
+def get_base_words_queryset(request):
+    """
+    Returns the base queryset of words depending on authentication:
+
+    - Unauthenticated: global pool (owner IS NULL)
+    - Authenticated: only this user's words
+    """
+    if request.user.is_authenticated:
+        return Word.objects.filter(owner=request.user)
+    return Word.objects.filter(owner__isnull=True)
+
+
+def get_base_quizzes_queryset(request):
+    """
+    For selection screen:
+    - Authenticated: this user's custom quizzes
+    - Unauthenticated: no custom quizzes (they can't manage them anyway)
+    """
+    if request.user.is_authenticated:
+        return CustomQuiz.objects.filter(owner=request.user)
+    return CustomQuiz.objects.none()
 
 
 # ============================================================
@@ -29,14 +60,17 @@ def quiz(request):
     start = request.GET.get("start")
     selected_language = request.GET.get("language", "").strip() or None
 
-    custom_quizzes = CustomQuiz.objects.all()
-    all_word_count = Word.objects.count()
+    # ---------- Choose base word pool ----------
+    base_words = get_base_words_queryset(request)
+
+    # ---------- Custom quizzes: per-user only ----------
+    custom_quizzes = get_base_quizzes_queryset(request)
+
+    all_word_count = base_words.count()
 
     # ---------- Build language list for selection screen ----------
-    from django.db.models import Count
-
     language_stats = (
-        Word.objects.values("language")
+        base_words.values("language")
         .annotate(count=Count("id"))
         .order_by("language")
     )
@@ -59,8 +93,6 @@ def quiz(request):
             "current_quiz": None,
             "custom_quizzes": custom_quizzes,
             "all_word_count": all_word_count,
-
-            # NEW:
             "quiz_languages": quiz_languages,
             "has_multiple_languages": has_multiple_languages,
             "selected_language": selected_language,
@@ -73,7 +105,15 @@ def quiz(request):
 
     # ---------- CUSTOM QUIZ ----------
     if quiz_id:
-        current_quiz = get_object_or_404(CustomQuiz, pk=quiz_id)
+        # Custom quizzes are personal: only owner can run them
+        if not request.user.is_authenticated:
+            raise Http404("Quiz not found.")
+
+        current_quiz = get_object_or_404(
+            CustomQuiz,
+            pk=quiz_id,
+            owner=request.user
+        )
 
         words_qs = list(current_quiz.words.order_by("original_word"))
         order = [w.id for w in words_qs]
@@ -125,9 +165,9 @@ def quiz(request):
     # ---------- GENERAL QUIZ ----------
     # APPLY LANGUAGE FILTER HERE
     if selected_language:
-        filtered_words = Word.objects.filter(language=selected_language)
+        filtered_words = base_words.filter(language=selected_language)
     else:
-        filtered_words = Word.objects.all()
+        filtered_words = base_words
 
     # pick next question
     quiz_choices, correct_answer, direction = read_words(filtered_words)
@@ -140,8 +180,6 @@ def quiz(request):
         "progress": None,
         "quiz_choices": quiz_choices,
         "correct_answer": correct_answer,
-
-        # display selected language in heading + nextQuiz JS
         "selected_language": selected_language,
     })
 
@@ -328,7 +366,7 @@ def check_answer(request):
 
     is_correct = (chosen_translation == correct_translation)
 
-    # Update stats for the word (works for general + custom quizzes)
+    # Update stats for the word (works for general + custom quizzes, global or per-user)
     try:
         word = Word.objects.get(id=word_id)
     except Word.DoesNotExist:
@@ -375,7 +413,8 @@ def next_quiz(request):
     # GENERAL QUIZ (infinite, supports choice + match)
     # ============================================================
     if not quiz_id:
-        base_qs = Word.objects.all()
+        # Use per-user words if logged in, global words otherwise
+        base_qs = get_base_words_queryset(request)
         if language:
             base_qs = base_qs.filter(language=language)
 
@@ -470,7 +509,10 @@ def next_quiz(request):
     # ============================================================
     # CUSTOM QUIZ (random order, supports choice + match)
     # ============================================================
-    quiz = get_object_or_404(CustomQuiz, pk=quiz_id)
+    if not request.user.is_authenticated:
+        raise Http404("Quiz not found.")
+
+    quiz = get_object_or_404(CustomQuiz, pk=quiz_id, owner=request.user)
     state = request.session.get("custom_quiz_state") or {}
 
     # (Re)initialize state if:
@@ -614,33 +656,22 @@ def next_quiz(request):
     })
 
 
-
 # ============================================================
 # Word list + CRUD (tab 1 in words_and_quizzes.html)
 # ============================================================
 
+@login_required
 def word_list(request):
     """
     Combined view that renders:
       - Word list (with live search + CRUD via AJAX)
       - Custom quizzes tab (list of CustomQuiz objects)
-
-    Behavior:
-      - If request is AJAX (X-Requested-With = XMLHttpRequest):
-          returns JSON with filtered words for live search.
-      - Otherwise:
-          renders 'words_and_quizzes.html' with:
-            - 'words': list of Word objects (filtered & ordered)
-            - 'custom_quizzes': all CustomQuiz objects
-            - 'query': current search string
-            - 'language_choices': Word.LANGUAGE_CHOICES
-            - 'selected_language': currently active language filter
     """
     query = request.GET.get('q', '').strip()
     language = request.GET.get('language', '').strip()
 
-    # Base queryset, ordered by original_word
-    qs = Word.objects.order_by('original_word')
+    # Base queryset: ONLY this user's words
+    qs = Word.objects.filter(owner=request.user).order_by('original_word')
 
     # Filter by language if selected
     if language:
@@ -674,8 +705,8 @@ def word_list(request):
         ]
         return JsonResponse({'words': results})
 
-    # Normal full-page render
-    custom_quizzes = CustomQuiz.objects.all()
+    # Normal full-page render: only this user's custom quizzes
+    custom_quizzes = CustomQuiz.objects.filter(owner=request.user)
 
     return render(
         request,
@@ -689,27 +720,114 @@ def word_list(request):
         }
     )
 
+@login_required
+def upload_words(request):
+    """
+    Step 1: show upload form
+    Step 2: on POST, parse file and show preview table
+    """
+    if request.method == "POST" and "file" in request.FILES:
+        uploaded_file = request.FILES["file"]
+
+        try:
+            rows = parse_words_file(uploaded_file)
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return redirect("quiz:upload_words")
+
+        # Store preview data in session for the confirm step
+        request.session["import_rows"] = rows
+        request.session.modified = True
+
+        return render(request, "quiz/upload_preview.html", {
+            "rows": rows,
+        })
+
+    # GET → show upload form
+    return render(request, "quiz/upload_form.html")
 
 
+@login_required
+@require_POST
+def confirm_import(request):
+    """
+    Step 3: user clicked 'Import' on preview → actually create Word objects.
 
+    - Reads parsed rows from session ("import_rows")
+    - Skips rows with missing original/translation
+    - Skips duplicates that already exist in the DB for this user
+    - Attaches the current user if Word has a user/owner field
+    """
+    rows = request.session.get("import_rows") or []
+
+    if not rows:
+        messages.error(request, "No import data found. Please upload a file again.")
+        return redirect("quiz:upload_words")
+
+    word_objs = []
+
+    for row in rows:
+        original = (row.get("original_word") or "").strip()
+        translation = (row.get("translation") or "").strip()
+        language = (row.get("language") or "").strip() or None
+
+        # Skip incomplete rows
+        if not original or not translation:
+            continue
+
+        # ------------ DUPLICATE CHECK AGAINST DB ------------
+        existing = Word.objects.filter(
+            original_word=original,
+            translation=translation,
+            language=language,
+        )
+
+        # If your Word model is per-user, restrict by current user
+        if hasattr(Word, "user"):
+            existing = existing.filter(user=request.user)
+        elif hasattr(Word, "owner"):
+            existing = existing.filter(owner=request.user)
+
+        if existing.exists():
+            # This word already exists for this user → skip
+            continue
+
+        # ------------ Build new Word instance ------------
+        word_kwargs = {
+            "original_word": original,
+            "translation": translation,
+            "language": language,
+        }
+
+        if hasattr(Word, "user"):
+            word_kwargs["user"] = request.user
+        elif hasattr(Word, "owner"):
+            word_kwargs["owner"] = request.user
+
+        word_objs.append(Word(**word_kwargs))
+
+    created_count = 0
+    if word_objs:
+        Word.objects.bulk_create(word_objs)
+        created_count = len(word_objs)
+
+    # Clean up session
+    request.session.pop("import_rows", None)
+
+    if created_count:
+        messages.success(request, f"Imported {created_count} words.")
+    else:
+        messages.warning(request, "No valid new words were imported from the file.")
+
+    return redirect("quiz:word_list")
+
+
+@login_required
 def edit_word(request, pk):
     """
-    AJAX endpoint to edit a single Word.
-
-    URL pattern: /word_list/<pk>/edit/
-
-    POST:
-      - 'original_word'
-      - 'translation'
-      - 'language'
-
-    Returns JSON:
-      - {'success': True} on successful save
-      - {'success': False, 'error': '...'} if validation fails
-
-    NOTE: If accessed via GET, returns the current values as JSON.
+    AJAX endpoint to edit a single Word (owned by current user).
     """
-    word = get_object_or_404(Word, pk=pk)
+    word = get_object_or_404(Word, pk=pk, owner=request.user)
 
     if request.method == 'POST':
         original = request.POST.get('original_word', '').strip()
@@ -743,47 +861,23 @@ def edit_word(request, pk):
     })
 
 
-
+@login_required
 def delete_word(request, pk):
     """
-    AJAX endpoint to delete a Word.
-
-    URL pattern: /word_list/<pk>/delete/
-
-    Method:
-      - POST only.
-
-    Returns JSON:
-      - {'success': True} on success
-      - {'success': False, 'error': '...'} on invalid method.
+    AJAX endpoint to delete a Word (owned by current user).
     """
     if request.method == 'POST':
-        word = get_object_or_404(Word, pk=pk)
+        word = get_object_or_404(Word, pk=pk, owner=request.user)
         word.delete()
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
+@login_required
 def add_word(request):
     """
-    AJAX endpoint to add a new Word.
-
-    URL pattern: /word_list/add/
-
-    POST:
-      - 'original_word'
-      - 'translation'
-      - 'language'
-
-    Validation:
-      - (original_word, language) combination must be unique
-      - all fields must be non-empty
-      - language must be one of Word.LANGUAGE_CHOICES
-
-    Returns JSON:
-      - {'success': True, 'word_id': <new id>, 'language': ..., 'language_display': ...}
-      - {'success': False, 'error': '...'} with error message
+    AJAX endpoint to add a new Word for the current user.
     """
     if request.method == "POST":
         original = request.POST.get("original_word", "").strip()
@@ -801,9 +895,9 @@ def add_word(request):
                 {"success": False, "error": "Invalid language."}
             )
 
-        # Allow the same spelling in different languages:
-        # e.g. "Bank" in English vs German
+        # Enforce uniqueness per user + language
         exists = Word.objects.filter(
+            owner=request.user,
             original_word=original,
             language=language
         ).exists()
@@ -817,6 +911,7 @@ def add_word(request):
             )
 
         word = Word.objects.create(
+            owner=request.user,          # 👈 tie to current user
             original_word=original,
             translation=translation,
             language=language,
@@ -832,32 +927,23 @@ def add_word(request):
     return JsonResponse({"success": False, "error": "Invalid request."})
 
 
-
 # ============================================================
 # Custom quizzes: detail/manage page + word assignment (tab 2)
 # ============================================================
 
+
+@login_required
 def custom_quiz_detail(request, pk):
     """
-    Detail/manage page for a single CustomQuiz.
-
-    URL pattern: /quiz/<pk>/
-
-    Displays:
-      - The quiz info (title, etc.)
-      - All words currently in this quiz (quiz_words)
-      - All words in the system (all_words) for an "Add words" modal
-
-    Template:
-      - quiz_manage_words.html
+    Detail/manage page for a single CustomQuiz (owned by current user).
     """
-    quiz = get_object_or_404(CustomQuiz, pk=pk)
+    quiz = get_object_or_404(CustomQuiz, pk=pk, owner=request.user)
 
     # Words that are in this quiz
     quiz_words = quiz.words.order_by('original_word')
 
-    # Only words NOT already in this quiz
-    all_words = Word.objects.exclude(
+    # Only words NOT already in this quiz, but owned by this user
+    all_words = Word.objects.filter(owner=request.user).exclude(
         pk__in=quiz_words.values('pk')
     ).order_by('original_word')
 
@@ -870,32 +956,22 @@ def custom_quiz_detail(request, pk):
     return render(request, 'quiz/quiz_manage_words.html', context)
 
 
-
+@login_required
 @require_POST
 def quiz_add_words(request, pk):
     """
-    AJAX endpoint to add multiple words to a CustomQuiz.
-
-    URL pattern: /quiz/<pk>/add_words/
-
-    POST:
-      - 'word_ids[]' (list of Word ids)
-
-    Behavior:
-      - Fetches Word objects by ID and adds them to quiz.words (ManyToMany)
-
-    Returns JSON:
-      - {'success': True, 'word_count': <current number of words in quiz>}
-      - {'success': False, 'error': '...'} if no words selected
+    AJAX endpoint to add multiple words to a CustomQuiz (owned by current user).
     """
-    quiz = get_object_or_404(CustomQuiz, pk=pk)
+    quiz = get_object_or_404(CustomQuiz, pk=pk, owner=request.user)
+
     # Support both 'word_ids[]' and 'word_ids' for flexibility
     word_ids = request.POST.getlist('word_ids[]') or request.POST.getlist('word_ids')
 
     if not word_ids:
         return JsonResponse({'success': False, 'error': 'No words selected.'})
 
-    words = Word.objects.filter(id__in=word_ids)
+    # Only allow adding this user's words
+    words = Word.objects.filter(id__in=word_ids, owner=request.user)
     quiz.words.add(*words)
 
     return JsonResponse({
@@ -904,29 +980,21 @@ def quiz_add_words(request, pk):
     })
 
 
+@login_required
 @require_POST
 def quiz_remove_word(request, pk):
     """
-    AJAX endpoint to remove a single word from a CustomQuiz.
-
-    URL pattern: /quiz/<pk>/remove_word/
-
-    POST:
-      - 'word_id': id of the Word to remove from this quiz
-
-    Returns JSON:
-      - {'success': True, 'word_count': <current number of words in quiz>}
-      - {'success': False, 'error': 'word_id is required.'} if missing
-      - {'success': False, 'error': 'Word not in this quiz.'} if invalid
+    AJAX endpoint to remove a single word from a CustomQuiz (owned by current user).
     """
-    quiz = get_object_or_404(CustomQuiz, pk=pk)
+    quiz = get_object_or_404(CustomQuiz, pk=pk, owner=request.user)
     word_id = request.POST.get('word_id')
 
     if not word_id:
         return JsonResponse({'success': False, 'error': 'word_id is required.'})
 
     try:
-        word = quiz.words.get(pk=word_id)
+        # Ensure this word actually belongs to the user and is in the quiz
+        word = quiz.words.get(pk=word_id, owner=request.user)
     except Word.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Word not in this quiz.'})
 
@@ -938,17 +1006,20 @@ def quiz_remove_word(request, pk):
     })
 
 
+@login_required
 @require_POST
 def create_quiz(request):
     """
     AJAX endpoint to create a new CustomQuiz from the "New Quiz" modal.
-    URL pattern: /quiz/create/
     """
     title = request.POST.get('title', '').strip()
     if not title:
         return JsonResponse({'success': False, 'error': 'Title is required.'})
 
-    quiz = CustomQuiz.objects.create(title=title)
+    quiz = CustomQuiz.objects.create(
+        title=title,
+        owner=request.user,   # 👈 tie to current user
+    )
 
     detail_url = reverse('quiz:custom_quiz_detail', args=[quiz.pk])
     delete_url = reverse('quiz:custom_quiz_delete', args=[quiz.pk])
@@ -960,20 +1031,16 @@ def create_quiz(request):
             'title': quiz.title,
             'word_count': quiz.words.count(),
             'detail_url': detail_url,
-            'delete_url': delete_url,   # 🔴 IMPORTANT
+            'delete_url': delete_url,
         }
     })
 
 
+@login_required
 def custom_quiz_delete(request, quiz_id):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required."}, status=400)
 
-    try:
-        quiz = CustomQuiz.objects.get(id=quiz_id)
-    except CustomQuiz.DoesNotExist:
-        raise Http404("Quiz not found.")
-
+    quiz = get_object_or_404(CustomQuiz, id=quiz_id, owner=request.user)
     quiz.delete()
     return JsonResponse({"success": True})
-
