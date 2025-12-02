@@ -5,62 +5,64 @@
      role="tabpanel"
      aria-labelledby="words-tab">
 
-  {# ========== Filters / Search / Actions ========== #}
-  <div class="row g-2 g-md-3 align-items-md-center mb-3">
-    {# Search input #}
-    <div class="col-12 col-md-5">
-      <div class="input-group">
-        <span class="input-group-text">🔍</span>
-        <input
-          type="text"
-          id="word-search-input"
-          class="form-control"
-          placeholder="Search by original word or translation..."
-          value="{{ query }}"
-        >
+  {# ========== Filters + Search + Actions (Words Tab) ========== #}
+  <div class="mb-3">
+
+    {# ===== Row 1: Search + Language filter ===== #}
+    <div class="row g-2 g-lg-3 align-items-lg-center mb-2">
+
+      {# Search input (wide on desktop) #}
+      <div class="col-12 col-lg-9">
+        <div class="input-group">
+          <span class="input-group-text">🔍</span>
+          <input
+            type="text"
+            id="word-search-input"
+            class="form-control"
+            placeholder="Search by original word or translation..."
+            value="{{ query }}"
+          >
+        </div>
       </div>
+
+      {# Language dropdown #}
+      <div class="col-12 col-lg-3">
+        <select id="language-filter" class="form-select">
+          <option value="">All languages</option>
+          {% for code, name in language_choices %}
+            <option value="{{ code }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
     </div>
 
-    {# Language dropdown #}
-    <div class="col-12 col-md-3">
-      <select id="language-filter" class="form-select">
-        <option value="">All languages</option>
-        {% for code, name in language_choices %}
-          <option value="{{ code }}">{{ name }}</option>
-        {% endfor %}
-      </select>
-    </div>
+    {# ===== Row 2: Action buttons (left-aligned) ===== #}
+    <div class="d-flex flex-column flex-sm-row justify-content-start gap-2 mb-1">
 
-    {# + Add Word button – 50% width on mobile, auto on md+ #}
-    <div class="col-6 col-md-auto">
       <button
         id="add-word-btn"
         type="button"
-        class="btn btn-success w-100 w-md-auto"
+        class="btn btn-success text-nowrap"
       >
         + Add Word
       </button>
-    </div>
 
-    {# Import words button – 50% width on mobile, auto on md+ #}
-    <div class="col-6 col-md-auto">
       <a
         href="{% url 'quiz:upload_words' %}"
-        class="btn btn-outline-secondary w-100 w-md-auto"
+        class="btn btn-outline-secondary text-nowrap"
       >
         ⇪ Import words
       </a>
-    </div>
 
-    {# Bulk delete – full-width on mobile, pushed right on md+ #}
-    <div class="col-12 col-md-auto ms-md-auto">
       <button
         id="bulk-delete-words-btn"
-        class="btn btn-danger d-none"
+        class="btn btn-danger d-none text-nowrap"
         disabled
       >
         Delete selected
       </button>
+
     </div>
   </div>
 
@@ -118,8 +120,7 @@
                   class="bi bi-trash3 fs-5 icon-action delete delete-btn"
                   role="button"
                   tabindex="0"
-                  title="Delete"
-                  aria-label="Delete word"
+                  title="Delete word"
                 ></i>
               </div>
             </td>

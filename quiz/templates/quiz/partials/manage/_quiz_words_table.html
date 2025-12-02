@@ -1,10 +1,25 @@
 {# templates/quiz/partials/manage/_quiz_words_table.html #}
 
 {# ========== Filter + Search + Add + Bulk delete ========== #}
-<div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
-  <div class="d-flex flex-grow-1 gap-2">
-    {# Language dropdown (left) #}
-    <div class="flex-shrink-0" style="min-width: 180px;">
+<div class="mb-3">
+
+  {# ===== Row 1: Search + Language (desktop: same row) ===== #}
+  <div class="row g-2 g-lg-3 align-items-lg-center mb-2">
+    {# Search bar #}
+    <div class="col-12 col-lg-9">
+      <div class="input-group">
+        <span class="input-group-text">🔍</span>
+        <input
+          type="text"
+          id="quiz-word-search"
+          class="form-control"
+          placeholder="Search within this quiz (original or translation)..."
+        >
+      </div>
+    </div>
+
+    {# Language dropdown #}
+    <div class="col-12 col-lg-3">
       <select id="quiz-language-filter" class="form-select">
         <option value="">All languages</option>
         {% for code, name in language_choices %}
@@ -12,30 +27,27 @@
         {% endfor %}
       </select>
     </div>
-
-    {# Search input #}
-    <div class="input-group flex-grow-1">
-      <span class="input-group-text">🔍</span>
-      <input
-        type="text"
-        id="quiz-word-search"
-        class="form-control"
-        placeholder="Search within this quiz (original or translation)..."
-      >
-    </div>
   </div>
 
-  <button id="open-add-words-modal-btn" class="btn btn-success flex-shrink-0">
-    + Add Words
-  </button>
-  <button
-    id="bulk-delete-btn"
-    class="btn btn-danger flex-shrink-0 d-none"
-    disabled
-  >
-    Delete selected
-  </button>
+  {# ===== Row 2: Buttons (left-aligned) ===== #}
+  <div class="d-flex flex-column flex-sm-row justify-content-start gap-2">
+    <button
+      id="open-add-words-modal-btn"
+      class="btn btn-success flex-fill flex-sm-grow-0 text-nowrap"
+    >
+      + Add Words
+    </button>
+
+    <button
+      id="bulk-delete-btn"
+      class="btn btn-danger flex-fill flex-sm-grow-0 text-nowrap d-none"
+      disabled
+    >
+      Delete selected
+    </button>
+  </div>
 </div>
+
 
 {# ========== Dynamic word count for quiz words ========== #}
 <p class="text-muted mb-3" id="quiz-word-count-text">
