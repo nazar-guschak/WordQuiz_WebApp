@@ -723,6 +723,29 @@ def word_list(request):
 import logging
 logger = logging.getLogger(__name__)
 
+def upload_words(request):
+    logger.info("upload_words called. method=%s, FILES=%s", request.method, request.FILES)
+
+    if request.method == "POST":
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            messages.error(request, "Please choose a file to upload.")
+            return render(request, "quiz/upload_form.html")
+
+        try:
+            rows = parse_words_file(uploaded_file)
+        except ValidationError as e:
+            logger.warning("ValidationError in upload_words: %s", e)
+            messages.error(request, str(e))
+            return render(request, "quiz/upload_form.html")
+
+        request.session["import_rows"] = rows
+        request.session.modified = True
+
+        return render(request, "quiz/upload_preview.html", {"rows": rows})
+
+    return render(request, "quiz/upload_form.html")
+
 
 @login_required
 @require_POST

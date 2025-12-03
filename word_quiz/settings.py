@@ -26,6 +26,7 @@ SECRET_KEY = 'django-insecure-5_r#_4qfl+k(k6kg9u!7c0^n=22^d)t_m$txb5jn8-ja_3ppm^
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    "127.0.0.1",
     "wordquiz-webapp.onrender.com",
 ]
 
