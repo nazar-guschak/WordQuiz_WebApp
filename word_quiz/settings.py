@@ -25,8 +25,13 @@ SECRET_KEY = 'django-insecure-5_r#_4qfl+k(k6kg9u!7c0^n=22^d)t_m$txb5jn8-ja_3ppm^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    "wordquiz-webapp.onrender.com",
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://wordquiz-webapp.onrender.com",
+]
 
 # Application definition
 

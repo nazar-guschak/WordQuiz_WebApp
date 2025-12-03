@@ -720,31 +720,8 @@ def word_list(request):
         }
     )
 
-@login_required
-def upload_words(request):
-    """
-    Step 1: show upload form
-    Step 2: on POST, parse file and show preview table
-    """
-    if request.method == "POST" and "file" in request.FILES:
-        uploaded_file = request.FILES["file"]
-
-        try:
-            rows = parse_words_file(uploaded_file)
-        except ValidationError as e:
-            messages.error(request, str(e))
-            return redirect("quiz:upload_words")
-
-        # Store preview data in session for the confirm step
-        request.session["import_rows"] = rows
-        request.session.modified = True
-
-        return render(request, "quiz/upload_preview.html", {
-            "rows": rows,
-        })
-
-    # GET → show upload form
-    return render(request, "quiz/upload_form.html")
+import logging
+logger = logging.getLogger(__name__)
 
 
 @login_required
