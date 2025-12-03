@@ -29,9 +29,6 @@ ALLOWED_HOSTS = [
     "wordquiz-webapp.onrender.com",
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://wordquiz-webapp.onrender.com",
-]
 
 # Application definition
 
