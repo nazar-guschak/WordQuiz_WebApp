@@ -30,6 +30,11 @@ ALLOWED_HOSTS = [
     "wordquiz-webapp.onrender.com",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://wordquiz-webapp.onrender.com",
+    # You can also do wildcard:
+    # "https://*.onrender.com",
+]
 
 # Application definition
 
