@@ -720,31 +720,32 @@ def word_list(request):
         }
     )
 
-import logging
-logger = logging.getLogger(__name__)
 
 def upload_words(request):
-    logger.info("upload_words called. method=%s, FILES=%s", request.method, request.FILES)
-
-    if request.method == "POST":
-        uploaded_file = request.FILES.get("file")
-        if not uploaded_file:
-            messages.error(request, "Please choose a file to upload.")
-            return render(request, "quiz/upload_form.html")
+    """
+    Step 1: show upload form
+    Step 2: on POST, parse file and show preview table
+    """
+    if request.method == "POST" and "file" in request.FILES:
+        uploaded_file = request.FILES["file"]
 
         try:
             rows = parse_words_file(uploaded_file)
         except ValidationError as e:
-            logger.warning("ValidationError in upload_words: %s", e)
             messages.error(request, str(e))
-            return render(request, "quiz/upload_form.html")
+            return redirect("quiz:upload_words")
 
+        # Store preview data in session for the confirm step
         request.session["import_rows"] = rows
         request.session.modified = True
 
-        return render(request, "quiz/upload_preview.html", {"rows": rows})
+        return render(request, "quiz/upload_preview.html", {
+            "rows": rows,
+        })
 
+    # GET → show upload form
     return render(request, "quiz/upload_form.html")
+
 
 
 @login_required
@@ -814,10 +815,10 @@ def confirm_import(request):
     # Clean up session
     request.session.pop("import_rows", None)
 
-    if created_count:
-        messages.success(request, f"Imported {created_count} words.")
-    else:
-        messages.warning(request, "No valid new words were imported from the file.")
+    # if created_count:
+    #     messages.success(request, f"Imported {created_count} words.")
+    # else:
+    #     messages.warning(request, "No valid new words were imported from the file.")
 
     return redirect("quiz:word_list")
 
