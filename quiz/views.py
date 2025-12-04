@@ -5,6 +5,7 @@ from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 
 from .models import *
 from .services import *
@@ -726,19 +727,59 @@ def upload_words(request):
     Step 1: show upload form
     Step 2: on POST, parse file and show preview table
     """
-    if request.method == "POST" and "file" in request.FILES:
-        uploaded_file = request.FILES["file"]
+    if request.method == "POST":
+        uploaded_file = request.FILES.get("file")
 
-        try:
-            rows = parse_words_file(uploaded_file)
-        except ValidationError as e:
-            messages.error(request, str(e))
+        # 1) No file selected
+        if not uploaded_file:
+            messages.error(request, "Please choose a file to upload.")
             return redirect("quiz:upload_words")
 
-        # Store preview data in session for the confirm step
+        # 2) Empty file
+        if uploaded_file.size == 0:
+            messages.error(request, "The uploaded file is empty.")
+            return redirect("quiz:upload_words")
+
+        # 3) Optional: simple extension check
+        valid_extensions = [".xlsx", ".xls", ".csv"]
+        _, ext = os.path.splitext(uploaded_file.name.lower())
+        if ext not in valid_extensions:
+            messages.error(
+                request,
+                "Unsupported file type. Please upload an Excel (.xlsx / .xls) "
+                "or CSV file."
+            )
+            return redirect("quiz:upload_words")
+
+        # 4) Parse file
+        try:
+            rows = parse_words_file(uploaded_file)
+
+        except ValidationError as e:
+            # e.messages is usually a list -> show each one cleanly (no [ ])
+            if hasattr(e, "messages"):
+                for msg in e.messages:
+                    messages.error(request, msg)
+            else:
+                # Fallback, just in case
+                messages.error(request, str(e))
+
+            return redirect("quiz:upload_words")
+
+        except Exception:
+            # Any other unexpected parsing/reading issue
+            messages.error(
+                request,
+                "Something went wrong while reading the file. "
+                "Please check that it has the correct columns and format."
+            )
+            return redirect("quiz:upload_words")
+
+        # 5) Store preview data in session for the confirm step
         request.session["import_rows"] = rows
         request.session.modified = True
 
+        # Show the preview table
         return render(request, "quiz/upload_preview.html", {
             "rows": rows,
         })
@@ -758,6 +799,7 @@ def confirm_import(request):
     - Skips rows with missing original/translation
     - Skips duplicates that already exist in the DB for this user
     - Attaches the current user if Word has a user/owner field
+    - Sets a flash message with the number of imported words
     """
     rows = request.session.get("import_rows") or []
 
@@ -776,7 +818,7 @@ def confirm_import(request):
         if not original or not translation:
             continue
 
-        # ------------ DUPLICATE CHECK AGAINST DB ------------
+        # ------------ Duplicate check against DB ------------
         existing = Word.objects.filter(
             original_word=original,
             translation=translation,
@@ -814,11 +856,20 @@ def confirm_import(request):
 
     # Clean up session
     request.session.pop("import_rows", None)
+    request.session.modified = True
 
-    # if created_count:
-    #     messages.success(request, f"Imported {created_count} words.")
-    # else:
-    #     messages.warning(request, "No valid new words were imported from the file.")
+    # --------- Flash message for the words page ---------
+    if created_count:
+        messages.success(
+            request,
+            f"Successfully added {created_count} new word{'s' if created_count != 1 else ''}."
+        )
+    else:
+        # File was valid but everything was duplicate / invalid
+        messages.info(
+            request,
+            "No new words found — everything in the file already exists or was invalid."
+        )
 
     return redirect("quiz:word_list")
 

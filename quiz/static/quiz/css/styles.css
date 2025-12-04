@@ -1,0 +1,275 @@
+/* ==========================
+   Page layout
+   ========================== */
+body {
+  background-color: #f5f7fb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.demo-wrapper {
+  min-height: 100vh;
+  padding: 2rem 0;
+}
+
+.demo-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 10px 25px rgba(15, 35, 52, 0.08);
+  margin-bottom: 1.75rem;
+}
+
+.badge-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.word-card {
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(15, 35, 52, 0.12);
+  border: none;
+}
+
+.word-card h3 {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* Helper: button rows */
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ==========================
+   Button base
+   ========================== */
+.btn-ws-base {
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding-inline: 1.15rem;
+  padding-block: 0.45rem;
+  border-width: 0;
+  box-shadow: 0 4px 10px rgba(15, 35, 52, 0.1);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.12s ease;
+}
+
+.btn-ws-base:focus-visible {
+  outline: 3px solid rgba(49, 128, 237, 0.4);
+  outline-offset: 2px;
+}
+
+.btn-ws-base:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(15, 35, 52, 0.12);
+}
+
+/* ==========================
+   Primary gradient button
+   ========================== */
+.btn-ws-primary {
+  background-image: linear-gradient(135deg, #3180ed, #6ec3ff);
+  color: #ffffff;
+}
+
+.btn-ws-primary:hover {
+  background-image: linear-gradient(135deg, #2766c1, #5fb6f5);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(34, 87, 170, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ==========================
+   Soft pastel button
+   ========================== */
+.btn-ws-soft {
+  background-color: #e7f1ff;
+  color: #215298;
+  box-shadow: 0 2px 8px rgba(23, 60, 117, 0.08);
+}
+
+.btn-ws-soft:hover {
+  background-color: #d5e5ff;
+  color: #163a6b;
+  box-shadow: 0 4px 12px rgba(23, 60, 117, 0.16);
+  transform: translateY(-1px);
+}
+
+/* ==========================
+   Outline button
+   ========================== */
+.btn-ws-outline {
+  background-color: transparent;
+  color: #215298;
+  border: 1px solid rgba(33, 82, 152, 0.35);
+  box-shadow: none;
+}
+
+.btn-ws-outline:hover {
+  background-color: rgba(33, 82, 152, 0.06);
+  border-color: rgba(33, 82, 152, 0.6);
+  box-shadow: 0 3px 8px rgba(15, 35, 52, 0.18);
+  transform: translateY(-1px);
+}
+
+/* ==========================
+   Ghost / minimal
+   ========================== */
+.btn-ws-ghost {
+  background-color: transparent;
+  color: #64748b;
+  box-shadow: none;
+  padding-inline: 0.75rem;
+}
+
+.btn-ws-ghost:hover {
+  background-color: rgba(148, 163, 184, 0.12);
+  color: #475569;
+}
+
+/* ==========================
+   Danger / Delete
+   ========================== */
+.btn-ws-danger {
+  background: linear-gradient(135deg, #f97373, #f43f5e);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.4);
+}
+
+.btn-ws-danger:hover {
+  background: linear-gradient(135deg, #dc2626, #e11d48);
+  box-shadow: 0 6px 14px rgba(185, 28, 28, 0.5);
+}
+
+/* ==========================
+   Success / Confirm
+   ========================== */
+.btn-ws-success {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+}
+
+.btn-ws-success:hover {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.45);
+  transform: translateY(-1px);
+}
+
+/* ==========================
+   Glass button
+   ========================== */
+.btn-ws-glass {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  color: #0f172a;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.btn-ws-glass:hover {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+}
+
+/* ==========================
+   Icon button (circle)
+   ========================== */
+.btn-ws-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background-color: #e5efff;
+  color: #215298;
+  box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12);
+}
+
+.btn-ws-icon:hover {
+  background-color: #d6e5ff;
+  color: #163a6b;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(15, 35, 52, 0.2);
+}
+
+.btn-ws-icon i {
+  font-size: 1.1rem;
+}
+
+.btn-ws-icon-label i {
+  margin-right: 0.35rem;
+  font-size: 1.1rem;
+}
+
+/* ==========================
+   Choice buttons (Quiz)
+   ========================== */
+
+.choice-btn {
+  width: 100%;
+  padding-block: 0.75rem;
+  font-size: 1.05rem;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Default soft pastel look */
+.choice-btn:not(.btn-success):not(.btn-danger) {
+  background-color: #e7f1ff;
+  color: #215298;
+  border: none;
+  box-shadow: 0 2px 8px rgba(23, 60, 117, 0.08);
+}
+
+/* Hover */
+.choice-btn:not(.btn-success):not(.btn-danger):hover {
+  background-color: #d5e5ff;
+  color: #163a6b;
+  box-shadow: 0 4px 12px rgba(23, 60, 117, 0.16);
+  transform: translateY(-1px);
+}
+
+/* Smooth transitions specifically for match items */
+.match-item {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+/* Temporary "wrong" flash state for matches */
+.match-wrong {
+  background-color: #fee2e2 !important;   /* soft red */
+  color: #b91c1c !important;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.7);
+}
+
+.match-selected {
+  background: linear-gradient(135deg, #93c5fd, #60a5fa) !important;
+  color: #0f172a !important;  /* dark slate text */
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.55),
+              0 4px 12px rgba(59,130,246,0.25);
+  transition: background 0.25s ease,
+              box-shadow 0.25s ease,
+              color 0.25s ease;
+}
+
+#next-btn:disabled {
+  opacity: 0.4;
+  filter: saturate(60%);
+  cursor: not-allowed;
+}

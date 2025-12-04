@@ -17,16 +17,33 @@
             <label class="form-label">Quiz Title</label>
             <input type="text" name="title" class="form-control" required>
           </div>
-          <div class="text-end">
-            <button type="submit" class="btn btn-primary" data-action="close">
-              Save &amp; Close
-            </button>
-            <button type="submit" class="btn btn-success" data-action="add-words">
-              Save &amp; Add Words
-            </button>
+
+          {# BUTTONS ROW #}
+          <div class="row g-2 justify-content-sm-end">
+            <div class="col-6 col-sm-auto">
+              <button
+                type="submit"
+                data-action="close"
+                class="btn btn-ws-base btn-ws-success text-nowrap w-100 w-sm-auto"
+              >
+                <i class="bi bi-check-circle me-1"></i>
+                Save &amp; Close
+              </button>
+            </div>
+            <div class="col-6 col-sm-auto">
+              <button
+                type="submit"
+                data-action="add-words"
+                class="btn btn-ws-base btn-ws-soft text-nowrap w-100 w-sm-auto"
+              >
+                <i class="bi bi-plus-square me-1"></i>
+                Save &amp; Add
+              </button>
+            </div>
           </div>
+
         </form>
       </div>
-    </div> <!-- closes modal-content -->
-  </div> <!-- closes modal-dialog -->
-</div> <!-- closes modal -->
+    </div>
+  </div>
+</div>

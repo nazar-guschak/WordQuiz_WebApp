@@ -6,6 +6,23 @@
   <div class="card shadow-sm p-4" style="width: 100%; max-width: 500px;">
 
     <h2 class="text-center mb-3">Import Words</h2>
+    {% if messages %}
+      <div class="mt-2 mb-3">
+        {% for message in messages %}
+          <div class="alert alert-warning alert-dismissible fade show small rounded-3 shadow-sm" role="alert">
+
+            {{ message }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
 
     <p class="text-muted text-center mb-4">
       Upload a CSV or Excel file with columns like:<br>
@@ -28,11 +45,18 @@
       </div>
 
       <div class="d-flex justify-content-between mt-4">
-        <a href="{% url 'quiz:word_list' %}" class="btn btn-outline-secondary">
+        <a
+          href="{% url 'quiz:word_list' %}"
+          class="btn btn-ws-base btn-ws-ghost text-nowrap"
+        >
           Cancel
         </a>
 
-        <button type="submit" class="btn btn-primary">
+        <button
+          type="submit"
+          class="btn btn-ws-base btn-ws-primary text-nowrap"
+        >
+          <i class="bi bi-upload me-1"></i>
           Upload &amp; Preview
         </button>
       </div>
@@ -40,13 +64,5 @@
 
   </div>
 </div>
-{% if messages %}
-  <div class="container mt-2">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} mb-2">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
+
 {% endblock %}

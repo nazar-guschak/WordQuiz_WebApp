@@ -29,8 +29,19 @@
             </select>
           </div>
           <div class="text-end">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save</button>
+            <button
+              type="button"
+              class="btn btn-ws-base btn-ws-ghost"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-ws-base btn-ws-success"
+            >
+              Save
+            </button>
           </div>
         </form>
       </div>
@@ -64,13 +75,32 @@
             <!-- JS will insert .word-row blocks here -->
           </div>
 
-          <button type="button" id="add-row-btn" class="btn btn-outline-secondary btn-sm mb-3">
-            + Add more
-          </button>
+            <button
+              type="button"
+              id="add-row-btn"
+              class="btn btn-ws-base btn-ws-outline btn-sm mb-3 text-nowrap"
+            >
+              <i class="bi bi-plus-square me-1"></i>
+              Add more
+            </button>
 
           <div class="text-end">
-            <button type="submit" class="btn btn-primary" data-action="close">Save &amp; Close</button>
-            <button type="submit" class="btn btn-success" data-action="add">Save &amp; Add More</button>
+            <button
+              type="submit"
+              data-action="close"
+              class="btn btn-ws-base btn-ws-success text-nowrap"
+            >
+              <i class="bi bi-check-circle me-1"></i>
+              Save &amp; Close
+            </button>
+            <button
+              type="submit"
+              data-action="add"
+              class="btn btn-ws-base btn-ws-soft text-nowrap"
+            >
+              <i class="bi bi-plus-square me-1"></i>
+              Save &amp; Add More
+            </button>
           </div>
         </form>
       </div>

@@ -5,6 +5,17 @@
      role="tabpanel"
      aria-labelledby="words-tab">
 
+  {# ===== Flash message for successful imports (WS green style) ===== #}
+  {% if messages %}
+    <div id="ws-flash-wrapper">
+      {% for message in messages %}
+        <div class="ws-flash ws-flash-success">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {# ========== Filters + Search + Actions (Words Tab) ========== #}
   <div class="mb-3">
 
@@ -40,28 +51,31 @@
     {# ===== Row 2: Action buttons (left-aligned) ===== #}
     <div class="d-flex flex-column flex-sm-row justify-content-start gap-2 mb-1">
 
-      <button
-        id="add-word-btn"
-        type="button"
-        class="btn btn-success text-nowrap"
-      >
-        + Add Word
-      </button>
+        <button
+          id="add-word-btn"
+          type="button"
+          class="btn btn-ws-base btn-ws-success text-nowrap"
+        >
+          <i class="bi bi-plus-square me-1"></i>
+          Add Word
+        </button>
 
-      <a
-        href="{% url 'quiz:upload_words' %}"
-        class="btn btn-outline-secondary text-nowrap"
-      >
-        ⇪ Import words
-      </a>
+        <a
+          href="{% url 'quiz:upload_words' %}"
+          class="btn btn-ws-base btn-ws-soft btn-ws-icon-label text-nowrap"
+        >
+          <i class="bi bi-upload"></i>
+          Import words
+        </a>
 
-      <button
-        id="bulk-delete-words-btn"
-        class="btn btn-danger d-none text-nowrap"
-        disabled
-      >
-        Delete selected
-      </button>
+        <button
+          id="bulk-delete-words-btn"
+          class="btn btn-ws-base btn-ws-danger d-none text-nowrap"
+          disabled
+        >
+          <i class="bi bi-trash3 me-1"></i>
+          Delete selected
+        </button>
 
     </div>
   </div>

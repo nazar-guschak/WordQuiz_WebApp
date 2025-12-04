@@ -131,12 +131,40 @@ def parse_words_file(uploaded_file):
     # ---------- Load into pandas ----------
     try:
         if ext == ".csv":
-            # Handle UTF-8 and other encodings gracefully
-            df = pd.read_csv(uploaded_file, encoding="utf-8", engine="python")
+            # Reset pointer just in case
+            uploaded_file.seek(0)
+
+            # 1) Try default settings (often works fine)
+            try:
+                df = pd.read_csv(uploaded_file)
+            except UnicodeDecodeError:
+                # 2) Try a few common encodings (Windows / Cyrillic)
+                uploaded_file.seek(0)
+                for enc in ["utf-8-sig", "cp1251", "cp1252", "latin-1"]:
+                    try:
+                        df = pd.read_csv(uploaded_file, encoding=enc)
+                        break
+                    except UnicodeDecodeError:
+                        uploaded_file.seek(0)
+                else:
+                    # If we exhausted all encodings:
+                    raise ValidationError(
+                        "Could not read the CSV file. Try saving it as “CSV UTF-8” or Excel (.xlsx) and upload again."
+                    )
         else:
+            # Excel branch
+            uploaded_file.seek(0)
             df = pd.read_excel(uploaded_file)
-    except Exception:
-        raise ValidationError("Could not read the file. Make sure it is a valid CSV/Excel file.")
+
+    except ValidationError:
+        # just bubble up our own ValidationError
+        raise
+    except Exception as e:
+        # Optional: log the real error somewhere for debugging
+        # print("parse_words_file error:", repr(e))
+        raise ValidationError(
+            "Could not read the file. Make sure it is a valid CSV/Excel file."
+        )
 
     if df.empty:
         raise ValidationError("The file appears to be empty.")

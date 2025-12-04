@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function getCSRFToken() {
     const cookieValue = document.cookie
       .split("; ")
-      .find(row => row.startsWith("csrftoken="));
+      .find((row) => row.startsWith("csrftoken="));
     return cookieValue ? cookieValue.split("=")[1] : "";
   }
   const csrfToken = getCSRFToken();
@@ -147,16 +147,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const finishButtons = document.getElementById("quiz-finish-buttons");
   const retryBtn = document.getElementById("retry-btn");
   const backBtn = document.getElementById("back-btn");
+  const mcInstruction = document.getElementById("mc-instruction");
 
   if (choicesContainer && nextBtn && wordText && correctAnswerInput) {
     // ---------- State ----------
-    let answered = false;           // current question answered/committed
+    let answered = false; // current question answered/committed
     let currentQuizType = "choice"; // "choice" or "match"
 
     // Matching quiz state
-    let matchLeftToRight = {};   // leftId -> rightId (only correct pairs stick)
-    let matchRightToLeft = {};   // rightId -> leftId
-    let matchLeftElements = {};  // leftId -> DOM element
+    let matchLeftToRight = {}; // leftId -> rightId (only correct pairs stick)
+    let matchRightToLeft = {}; // rightId -> leftId
+    let matchLeftElements = {}; // leftId -> DOM element
     let matchRightElements = {}; // rightId -> DOM element
     let matchSelectedLeftId = null;
 
@@ -174,6 +175,18 @@ document.addEventListener("DOMContentLoaded", () => {
       nextQuizUrl = `${nextQuizBaseUrl}?language=${encodeURIComponent(
         selectedLanguage
       )}`;
+    }
+
+    // Small helper: show/hide multiple-choice instruction
+    function showMcInstruction() {
+      if (!mcInstruction) return;
+      mcInstruction.textContent = "Choose the correct translation.";
+      mcInstruction.classList.remove("d-none");
+    }
+
+    function hideMcInstruction() {
+      if (!mcInstruction) return;
+      mcInstruction.classList.add("d-none");
     }
 
     // ========================================================
@@ -197,10 +210,14 @@ document.addEventListener("DOMContentLoaded", () => {
         wordCard.classList.remove("d-none");
       }
 
+      // Restore stacked layout for choices
+      choicesContainer.className = "d-grid gap-3";
+
       nextBtn.textContent = "Next";
       nextBtn.disabled = true;
-      nextBtn.classList.remove("btn-primary");
-      nextBtn.classList.add("btn-secondary");
+
+      // Show multiple-choice instruction
+      showMcInstruction();
     }
 
     function clearPairClasses(el) {
@@ -211,8 +228,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "match-pair-2",
         "match-pair-3",
         "match-pair-4",
-        "match-correct",
-        "match-wrong"
+        "match-disabled",
+        "match-selected",
+        "match-wrong",
+        "btn-ws-success" // but keep btn-ws-soft as baseline
       );
     }
 
@@ -225,24 +244,32 @@ document.addEventListener("DOMContentLoaded", () => {
       clearPairClasses(leftEl);
       clearPairClasses(rightEl);
 
-      leftEl.classList.add("match-correct", "match-disabled");
-      rightEl.classList.add("match-correct", "match-disabled");
+      // Remove soft style before applying success style
+      leftEl.classList.remove("btn-ws-soft");
+      rightEl.classList.remove("btn-ws-soft");
+
+      // Apply green Word Stream success styling
+      leftEl.classList.add("btn-ws-success", "match-disabled");
+      rightEl.classList.add("btn-ws-success", "match-disabled");
     }
 
     // For wrong attempt: flash red and then revert
     function flashWrongPair(leftEl, rightEl) {
       if (!leftEl || !rightEl) return;
 
+      // Clear previous match-related classes, but keep the soft base styling
       clearPairClasses(leftEl);
       clearPairClasses(rightEl);
 
+      // Add temporary "wrong" state (will fade in due to CSS transition)
       leftEl.classList.add("match-wrong");
       rightEl.classList.add("match-wrong");
 
+      // After delay, remove "wrong" state (fades back to soft)
       setTimeout(() => {
-        clearPairClasses(leftEl);
-        clearPairClasses(rightEl);
-      }, 500);
+        leftEl.classList.remove("match-wrong");
+        rightEl.classList.remove("match-wrong");
+      }, 800); // tweak if needed
     }
 
     // Called after each correct pairing; when all pairs are done:
@@ -254,16 +281,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (currentPairs === totalPairsNeeded) {
         nextBtn.disabled = false;
-        nextBtn.classList.remove("btn-secondary");
-        nextBtn.classList.add("btn-primary");
         nextBtn.textContent = "Next";
 
         // Send matches + first-attempt info to backend once
         submitMatchAnswer();
       } else {
         nextBtn.disabled = true;
-        nextBtn.classList.remove("btn-primary");
-        nextBtn.classList.add("btn-secondary");
       }
     }
 
@@ -276,33 +299,43 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       wordText.textContent = "";
 
+      // Hide multiple-choice instruction in match mode
+      hideMcInstruction();
+
+      // Clear previous choices and use layout suited for match UI
       choicesContainer.innerHTML = "";
+      choicesContainer.className = "mt-2";
 
       const instructionText =
         instruction || "Match each word with its correct translation.";
 
+      // Full-width heading above columns
       const infoP = document.createElement("p");
       infoP.className = "fw-semibold text-center mb-3";
       infoP.textContent = instructionText;
       choicesContainer.appendChild(infoP);
 
+      // Two-column layout
       const row = document.createElement("div");
-      row.className = "row";
+      row.className = "row g-2 g-md-3";
+      choicesContainer.appendChild(row);
 
       const leftCol = document.createElement("div");
       leftCol.className = "col-6 d-grid gap-2";
+      row.appendChild(leftCol);
 
       const rightCol = document.createElement("div");
       rightCol.className = "col-6 d-grid gap-2";
+      row.appendChild(rightCol);
 
       resetMatchState();
 
       // Left column buttons (original words)
-      leftItems.forEach(item => {
+      leftItems.forEach((item) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className =
-          "btn btn-outline-primary py-2 fs-5 w-100 text-start match-item match-left";
+          "btn btn-ws-base btn-ws-soft choice-btn w-100 text-start match-item match-left";
         btn.dataset.wordId = item.id;
         btn.textContent = item.text;
         leftCol.appendChild(btn);
@@ -310,26 +343,20 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       // Right column buttons (translations)
-      rightItems.forEach(item => {
+      rightItems.forEach((item) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className =
-          "btn btn-outline-primary py-2 fs-5 w-100 text-start match-item match-right";
+          "btn btn-ws-base btn-ws-soft choice-btn w-100 text-start match-item match-right";
         btn.dataset.wordId = item.id;
         btn.textContent = item.text;
         rightCol.appendChild(btn);
         matchRightElements[item.id] = btn;
       });
 
-      row.appendChild(leftCol);
-      row.appendChild(rightCol);
-      choicesContainer.appendChild(row);
-
       // In match mode the button is "Next", but disabled until all pairs correct
       nextBtn.textContent = "Next";
       nextBtn.disabled = true;
-      nextBtn.classList.remove("btn-primary");
-      nextBtn.classList.add("btn-secondary");
 
       attachMatchHandlers();
     }
@@ -339,7 +366,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const rightButtons = document.querySelectorAll(".match-right");
 
       // Left column: select a word to pair
-      leftButtons.forEach(btn => {
+      leftButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
           if (currentQuizType !== "match") return;
 
@@ -362,7 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       // Right column: try to pair with selected left word
-      rightButtons.forEach(btn => {
+      rightButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
           if (currentQuizType !== "match") return;
 
@@ -485,7 +512,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const buttons = document.querySelectorAll(".choice-btn");
       if (!buttons.length || !correctAnswerInput.value) return;
 
-      buttons.forEach(btn => {
+      buttons.forEach((btn) => {
         btn.addEventListener("click", async () => {
           if (answered) return;
           answered = true;
@@ -512,14 +539,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
             document
               .querySelectorAll(".choice-btn")
-              .forEach(b => (b.disabled = true));
+              .forEach((b) => (b.disabled = true));
 
-            btn.classList.remove("btn-outline-primary");
-            btn.classList.add(data.is_correct ? "btn-success" : "btn-danger");
+            // Remove any old style classes
+            btn.classList.remove(
+              "btn-outline-primary",
+              "btn-success",
+              "btn-danger",
+              "btn-ws-soft",
+              "btn-ws-success",
+              "btn-ws-danger"
+            );
+
+            // Apply Word Stream success / danger styles
+            if (data.is_correct) {
+              btn.classList.add("btn-ws-success");
+            } else {
+              btn.classList.add("btn-ws-danger");
+            }
 
             nextBtn.disabled = false;
-            nextBtn.classList.remove("btn-secondary");
-            nextBtn.classList.add("btn-primary");
             nextBtn.textContent = "Next";
           } catch (err) {
             console.error("Check answer error:", err);
@@ -534,6 +573,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // ========================================================
 
     // The first question is rendered by the template as multiple-choice
+    // → show MC instruction for this initial question
+    showMcInstruction();
     attachChoiceHandlers();
 
     // Next button
@@ -570,6 +611,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
 
+          // Hide MC instruction on finish
+          hideMcInstruction();
           return;
         }
 
@@ -600,18 +643,23 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           choicesContainer.innerHTML = "";
-          (data.choices || []).forEach(choice => {
+          choicesContainer.className = "d-grid gap-3";
+
+          (data.choices || []).forEach((choice) => {
             const btn = document.createElement("button");
-            btn.className = "btn btn-outline-primary py-2 fs-5 choice-btn";
+            btn.type = "button";
+            btn.className =
+              "btn btn-ws-base btn-ws-soft choice-btn w-100";
             btn.dataset.answer = choice;
             btn.textContent = choice;
             choicesContainer.appendChild(btn);
           });
 
           nextBtn.disabled = true;
-          nextBtn.classList.remove("btn-primary");
-          nextBtn.classList.add("btn-secondary");
           nextBtn.textContent = "Next";
+
+          // Show multiple-choice instruction for this new question
+          showMcInstruction();
 
           attachChoiceHandlers();
         }

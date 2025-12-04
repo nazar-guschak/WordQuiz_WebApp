@@ -9,12 +9,23 @@
      data-add-url="{% url 'quiz:quiz_add_words' quiz.id %}"
      data-remove-url="{% url 'quiz:quiz_remove_word' quiz.id %}">
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Manage Quiz: "{{ quiz.title }}"</h2>
-    <a href="{% url 'quiz:word_list' %}" class="btn btn-outline-secondary">
-      ← Back to Words &amp; Quizzes
-    </a>
-  </div>
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3">
+
+      <!-- TITLE — should appear FIRST on mobile -->
+        <h2 class="mb-0 order-first order-sm-first text-center text-sm-start">
+          Manage Quiz: "{{ quiz.title }}"
+        </h2>
+
+      <!-- BACK BUTTON — should appear BELOW title on mobile -->
+      <a
+        href="{% url 'quiz:word_list' %}"
+        class="btn btn-ws-base btn-ws-outline text-nowrap mt-2 mt-sm-0 order-last order-sm-last"
+      >
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to Words &amp; Quizzes
+      </a>
+
+    </div>
 
   {# main table / filters #}
   {% include "quiz/partials/manage/_quiz_words_table.html" %}
