@@ -5,7 +5,6 @@ from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.contrib import messages
-from django.core.exceptions import ValidationError
 
 from .models import *
 from .services import *
@@ -797,8 +796,8 @@ def confirm_import(request):
 
     - Reads parsed rows from session ("import_rows")
     - Skips rows with missing original/translation
-    - Skips duplicates that already exist in the DB for this user
-    - Attaches the current user if Word has a user/owner field
+    - Uses get_or_create to avoid UNIQUE constraint errors
+    - Treats words as unique per user by (owner/user, original_word, language)
     - Sets a flash message with the number of imported words
     """
     rows = request.session.get("import_rows") or []
@@ -807,7 +806,7 @@ def confirm_import(request):
         messages.error(request, "No import data found. Please upload a file again.")
         return redirect("quiz:upload_words")
 
-    word_objs = []
+    created_count = 0
 
     for row in rows:
         original = (row.get("original_word") or "").strip()
@@ -818,41 +817,40 @@ def confirm_import(request):
         if not original or not translation:
             continue
 
-        # ------------ Duplicate check against DB ------------
-        existing = Word.objects.filter(
-            original_word=original,
-            translation=translation,
-            language=language,
-        )
-
-        # If your Word model is per-user, restrict by current user
-        if hasattr(Word, "user"):
-            existing = existing.filter(user=request.user)
-        elif hasattr(Word, "owner"):
-            existing = existing.filter(owner=request.user)
-
-        if existing.exists():
-            # This word already exists for this user → skip
-            continue
-
-        # ------------ Build new Word instance ------------
-        word_kwargs = {
+        # --------- Build the uniqueness key (align with your unique_together) ---------
+        lookup_kwargs = {
             "original_word": original,
-            "translation": translation,
             "language": language,
         }
 
+        # Per-user uniqueness: adjust depending on your model field
         if hasattr(Word, "user"):
-            word_kwargs["user"] = request.user
+            lookup_kwargs["user"] = request.user
         elif hasattr(Word, "owner"):
-            word_kwargs["owner"] = request.user
+            lookup_kwargs["owner"] = request.user
 
-        word_objs.append(Word(**word_kwargs))
+        # Defaults for newly created records
+        defaults = {
+            "translation": translation,
+        }
 
-    created_count = 0
-    if word_objs:
-        Word.objects.bulk_create(word_objs)
-        created_count = len(word_objs)
+        # --------- Safe create: no IntegrityError even with duplicates ---------
+        word_obj, created = Word.objects.get_or_create(
+            **lookup_kwargs,
+            defaults=defaults,
+        )
+
+        if created:
+            created_count += 1
+        else:
+            # Optional: if you want to update translation on duplicates, uncomment:
+            #
+            # if word_obj.translation != translation:
+            #     word_obj.translation = translation
+            #     word_obj.save(update_fields=["translation"])
+            #
+            # For now we just skip updating existing words.
+            pass
 
     # Clean up session
     request.session.pop("import_rows", None)
@@ -865,7 +863,6 @@ def confirm_import(request):
             f"Successfully added {created_count} new word{'s' if created_count != 1 else ''}."
         )
     else:
-        # File was valid but everything was duplicate / invalid
         messages.info(
             request,
             "No new words found — everything in the file already exists or was invalid."

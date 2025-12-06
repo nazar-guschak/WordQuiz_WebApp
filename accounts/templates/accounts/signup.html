@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% block title %}Sign Up – Word Stream{% endblock %}
 {% block content %}
 <div class="container mt-5" style="max-width: 420px;">
-  <div class="card shadow-sm p-4">
+  <div class="demo-card">
 
     <h2 class="text-center mb-4">Sign up</h2>
 
@@ -50,12 +51,12 @@
         {% endif %}
       </div>
 
-      <button class="btn btn-primary w-100 mt-3">Create account</button>
+      <button class="btn btn-ws-base btn-ws-primary w-100 mt-3">Create account</button>
     </form>
 
-    <div class="text-center mt-2">
+    <div class="text-center mt-2 small">
       Already have an account?
-      <a href="{% url 'accounts:login' %}">Log in</a>
+      <a href="{% url 'accounts:login' %}" class="ws-link-strong">Log in</a>
     </div>
 
   </div>

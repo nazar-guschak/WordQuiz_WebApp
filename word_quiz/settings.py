@@ -41,6 +41,7 @@ CSRF_TRUSTED_ORIGINS = [
 INSTALLED_APPS = [
     'quiz',
     'accounts',
+    "widget_tweaks",
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -82,6 +83,7 @@ LOGOUT_REDIRECT_URL = "index"
 # ============================================================
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "Word Stream <help@word-stream.online>"
 
 TEMPLATES = [
     {

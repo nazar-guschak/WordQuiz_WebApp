@@ -273,3 +273,68 @@ body {
   filter: saturate(60%);
   cursor: not-allowed;
 }
+
+.ws-link-strong {
+  font-weight: 700;
+  color: #3180ed;
+  text-decoration: none;
+}
+
+.ws-link-strong:hover {
+  color: #2766c1;
+  text-decoration: underline;
+}
+
+.ws-logo {
+  height: 48px; /* or your preferred size */
+  display: inline-block;
+  vertical-align: middle;
+  transform: translateY(-2px); /* adjust -1px to -4px until visually perfect */
+}
+
+.profile-details dd {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.import-sticky-bar {
+  position: sticky;
+  bottom: 14px;
+  z-index: 50;
+
+  display: flex;                 /* ✅ center container itself */
+  justify-content: center;
+  pointer-events: none;
+}
+
+.import-sticky-inner {
+  width: fit-content;            /* ✅ hugs button width */
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 0.55rem 0.65rem;
+
+  display: flex;
+  justify-content: center;       /* ✅ center buttons inside */
+  gap: 0.35rem;                  /* ✅ tight grouping */
+  align-items: center;
+
+  pointer-events: auto;
+}
+
+@media (max-width: 576px) {
+  .import-sticky-inner {
+    border-radius: 16px;
+    padding: 0.6rem 0.6rem;
+  }
+
+  .import-sticky-inner .btn {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+}

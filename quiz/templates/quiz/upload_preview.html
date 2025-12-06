@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="container my-4">
+
   <h1 class="mb-3">Preview import</h1>
   <p class="text-muted">
     Check the words below. If everything looks good, click
@@ -11,7 +12,9 @@
 
   <div class="card shadow-sm">
     <div class="card-body">
+
       {% if rows %}
+
         <div class="table-responsive">
           <table class="table table-striped align-middle">
             <thead>
@@ -35,26 +38,10 @@
           </table>
         </div>
 
-        <form method="post" action="{% url 'quiz:confirm_import' %}">
-          {% csrf_token %}
-            <button
-              type="submit"
-              class="btn btn-ws-base btn-ws-success text-nowrap"
-            >
-              <i class="bi bi-plus-square me-1"></i>
-              Import words
-            </button>
-
-            <a
-              href="{% url 'quiz:upload_words' %}"
-              class="btn btn-ws-base btn-ws-ghost text-nowrap ms-2"
-            >
-              Start over
-            </a>
-
-        </form>
       {% else %}
+
         <p>No rows to preview.</p>
+
         <a
           href="{% url 'quiz:upload_words' %}"
           class="btn btn-ws-base btn-ws-primary text-nowrap"
@@ -62,8 +49,37 @@
           <i class="bi bi-upload me-1"></i>
           Upload another file
         </a>
+
       {% endif %}
+
     </div>
   </div>
 </div>
+
+{% if rows %}
+<div class="import-sticky-bar">
+  <div class="import-sticky-inner">
+
+    <a
+      href="{% url 'quiz:upload_words' %}"
+      class="btn btn-ws-base btn-ws-ghost text-nowrap"
+    >
+      Start over
+    </a>
+
+    <form method="post" action="{% url 'quiz:confirm_import' %}" class="m-0">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-ws-base btn-ws-success text-nowrap"
+      >
+        <i class="bi bi-plus-square me-1"></i>
+        Import words
+      </button>
+    </form>
+
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}

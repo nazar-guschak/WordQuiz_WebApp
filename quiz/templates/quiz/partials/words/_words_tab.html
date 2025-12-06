@@ -94,7 +94,7 @@
     <table class="table table-striped table-hover table-sm table-no-gap mb-0">
       <thead class="table-primary">
         <tr>
-          <th class="ps-3" style="width:40px;">
+          <th class="ps-1" style="width:40px;">
             <input type="checkbox" id="word-select-all">
           </th>
 
@@ -111,7 +111,7 @@
       <tbody id="word-table-body">
         {% for word in words %}
           <tr data-id="{{ word.id }}" data-language="{{ word.language }}">
-            <td class="ps-3">
+            <td class="ps-1">
               <input type="checkbox" class="word-checkbox">
             </td>
 
@@ -119,9 +119,9 @@
             <td>{{ word.translation }}</td>
 
             {# Hidden on mobile #}
-            <td class="d-none d-sm-table-cell">{{ word.language|upper }}</td>
+            <td class="d-none d-sm-table-cell">{{ word.get_language_display }}</td>
 
-            <td class="text-center pe-4">
+            <td class="text-center pe-1">
               <div class="d-flex justify-content-center gap-3">
                 <i
                   class="bi bi-pencil-square fs-5 icon-action edit edit-btn"

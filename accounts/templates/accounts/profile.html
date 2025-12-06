@@ -1,0 +1,99 @@
+{# templates/accounts/profile.html #}
+{% extends "base.html" %}
+{% load static %}
+{% block title %}My Profile – Word Stream{% endblock %}
+
+{% block content %}
+
+{# ===== TOP-CENTER FLASH MESSAGE (FADE IN/OUT) ===== #}
+{% if messages %}
+  <div id="ws-flash-wrapper">
+    {% for message in messages %}
+      {# You can have ws-flash-success / -error / -info in CSS, but for now success is enough #}
+      <div class="ws-flash ws-flash-success">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="container mt-0 mb-0" style="max-width: 640px;">
+  <div class="demo-card p-0" style="overflow: hidden;">
+
+    {# ===== HEADER SECTION WITH COLORED BACKGROUND ===== #}
+    <div style="
+      background: linear-gradient(180deg, #d9ccff 0%, #e9e2ff 100%);
+      height: 160px;
+      position: relative;
+    ">
+      {# Profile avatar overlapping the header #}
+      <div style="
+        position: absolute;
+        left: 50%;
+        bottom: -48px;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        border: 4px solid white;
+        overflow: hidden;
+        background: white;
+      ">
+        <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+             alt="Profile picture"
+             style="width: 100%; height: 100%; object-fit: cover;">
+      </div>
+    </div>
+
+    {# ===== USERNAME ===== #}
+    <div class="text-center mt-5">
+      <h3 class="fw-semibold mb-4">Hi, {{ request.user.username }}</h3>
+    </div>
+
+    {# ===== REST OF PROFILE CONTENT BELOW ===== #}
+    <div class="px-4 pb-4">
+      <div class="border rounded-3 p-3 p-md-4 mb-4 bg-light">
+        <h5 class="mb-3">Account details</h5>
+
+        <dl class="row mb-0">
+          <dt class="col-4 col-md-3 text-muted small">Email</dt>
+          <dd class="col-8 col-md-9 mb-2 mb-md-1">{{ request.user.email }}</dd>
+
+          <dt class="col-4 col-md-3 text-muted small">Username</dt>
+          <dd class="col-8 col-md-9 mb-2 mb-md-1">{{ request.user.username }}</dd>
+
+          <dt class="col-4 col-md-3 text-muted small">Member since</dt>
+          <dd class="col-8 col-md-9 mb-0">
+            {{ request.user.date_joined|date:"M d, Y" }}
+          </dd>
+        </dl>
+      </div>
+
+      <div class="border rounded-3 p-3 p-md-4 mb-3">
+        <h5 class="mb-3">Account actions</h5>
+
+        <div class="d-grid gap-2">
+          <a href="{% url 'accounts:change_email' %}"
+             class="btn btn-ws-base btn-ws-primary">
+            Change email
+          </a>
+
+          <a href="{% url 'accounts:password_change' %}"
+             class="btn btn-ws-base btn-ws-primary">
+            Change password
+          </a>
+
+          {# Log out triggers your modal or direct logout #}
+          <a href="#"
+             data-bs-toggle="modal"
+             data-bs-target="#logoutModal"
+             class="btn btn-ws-base btn-ws-danger">
+            Log out
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

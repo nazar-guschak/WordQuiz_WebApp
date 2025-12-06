@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
+
+User = get_user_model()
 
 class LoginForm(forms.Form):
     username = forms.CharField(
@@ -83,3 +84,37 @@ class EmailOrUsernameAuthenticationForm(AuthenticationForm):
         # If both fail
         raise forms.ValidationError("Invalid login credentials")
 
+
+class ChangeEmailForm(forms.Form):
+    current_password = forms.CharField(
+        label="Current password",
+        widget=forms.PasswordInput(attrs={"class": "form-control"})
+    )
+
+    new_email = forms.EmailField(
+        label="New email address",
+        widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        """
+        We pass the logged-in user from the view so we can:
+        - check their password
+        - exclude their own email when checking uniqueness
+        """
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self):
+        pwd = self.cleaned_data.get("current_password")
+        if not self.user or not self.user.check_password(pwd):
+            raise forms.ValidationError("Incorrect password.")
+        return pwd
+
+    def clean_new_email(self):
+        email = self.cleaned_data.get("new_email")
+        # Don't block if it's the same as current email
+        if email and email != self.user.email:
+            if User.objects.filter(email=email).exists():
+                raise forms.ValidationError("This email is already in use.")
+        return email

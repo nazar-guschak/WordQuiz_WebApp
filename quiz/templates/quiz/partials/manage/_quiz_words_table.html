@@ -90,10 +90,10 @@
 
           {# Hidden on mobile #}
           <td class="d-none d-sm-table-cell">
-            {{ word.language|upper }}
+            {{ word.get_language_display }}
           </td>
 
-          <td class="text-center pe-3">
+          <td class="text-center pe-1">
             <div class="d-flex justify-content-center">
               <i
                 class="bi bi-trash3 fs-5 icon-action delete remove-word-btn"

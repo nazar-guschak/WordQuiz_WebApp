@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
-
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
-from .forms import SignUpForm, LoginForm
+from .forms import SignUpForm, LoginForm, ChangeEmailForm
 
 def login_view(request):
     """
@@ -68,3 +68,26 @@ def logout_view(request):
     """
     logout(request)
     return redirect("quiz:index")  # or "quiz:index" if you prefer
+
+
+@login_required
+def profile(request):
+    return render(request, "accounts/profile.html")
+
+
+@login_required
+def change_email(request):
+    if request.method == "POST":
+        form = ChangeEmailForm(request.POST, user=request.user)
+        if form.is_valid():
+            request.user.email = form.cleaned_data["new_email"]
+            request.user.save()
+            messages.success(request, "Your email has been updated.")
+            return redirect("accounts:profile")
+    else:
+        form = ChangeEmailForm(
+            user=request.user,
+            initial={"new_email": request.user.email}
+        )
+
+    return render(request, "accounts/change_email.html", {"form": form})
