@@ -16,14 +16,15 @@
       Твій <span>словник</span> в кишені
     </h1>
 
+
     <p class="text-muted mx-auto mb-5 ws-animate" style="max-width: 720px; font-size: 1.1rem;">
       Word Stream is a self-managed vocabulary learning system that adapts to your memory.
       Add your own words, train them through smart quizzes, and watch your language skills grow naturally.
     </p>
 
     <div class="d-flex justify-content-center gap-3 flex-wrap ws-animate">
-      <a href="{% url 'quiz:index' %}" class="btn btn-ws-primary btn-lg px-4">
-        Start a Quiz
+      <a href="{% url 'quiz:quiz' %}" class="btn btn-ws-primary btn-lg px-4">
+        Try a Quiz
       </a>
       <a href="{% url 'accounts:signup' %}" class="btn btn-ws-soft btn-lg px-4">
         Create Account
