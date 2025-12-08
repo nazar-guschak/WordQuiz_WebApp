@@ -19,6 +19,8 @@
   body {
     background-color: #f9f9f9;
     font-family: system-ui, sans-serif;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   main {
@@ -33,6 +35,10 @@
     border-top: 1px solid #eee;
     font-size: 0.9rem;
   }
+
+  section {
+  overflow-x: hidden;
+    }
 
   /* ===========================
      Navbar
@@ -407,5 +413,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const animatedItems = document.querySelectorAll(".ws-animate");
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    animatedItems.forEach(el => observer.observe(el));
+  });
+</script>
+
 </body>
 </html>

@@ -338,3 +338,31 @@ body {
     padding-right: 0.85rem;
   }
 }
+
+.ws-flags-strip {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.hero-gradient-text span {
+  background: linear-gradient(90deg, #5a8dee, #7fd6c2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+}
+
+/* =========================
+   SCROLL ANIMATIONS
+========================= */
+
+.ws-animate {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.ws-animate.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
