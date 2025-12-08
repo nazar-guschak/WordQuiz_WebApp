@@ -48,5 +48,18 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'quiz/js/words_and_quizzes.js' %}"></script>
+<!--  <script src="{% static 'quiz/js/words_and_quizzes.js' %}"></script>-->
+<script src="{% static 'quiz/js/core/csrf.js' %}"></script>
+<script src="{% static 'quiz/js/core/dom_ready.js' %}"></script>
+
+<script src="{% static 'quiz/js/words/words_search.js' %}"></script>
+<script src="{% static 'quiz/js/words/words_bulk.js' %}"></script>
+<script src="{% static 'quiz/js/words/words_edit.js' %}"></script>
+<script src="{% static 'quiz/js/words/words_add.js' %}"></script>
+
+<script src="{% static 'quiz/js/quizzes/quizzes_add.js' %}"></script>
+<script src="{% static 'quiz/js/quizzes/quizzes_delete.js' %}"></script>
+<script src="{% static 'quiz/js/quizzes/quizzes_search.js' %}"></script>
+
+<script src="{% static 'quiz/js/app.js' %}"></script>
 {% endblock %}

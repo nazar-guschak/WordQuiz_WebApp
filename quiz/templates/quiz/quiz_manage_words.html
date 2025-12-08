@@ -7,7 +7,8 @@
      id="quiz-manage-root"
      data-quiz-id="{{ quiz.id }}"
      data-add-url="{% url 'quiz:quiz_add_words' quiz.id %}"
-     data-remove-url="{% url 'quiz:quiz_remove_word' quiz.id %}">
+     data-remove-url="{% url 'quiz:quiz_remove_word' quiz.id %}"
+     data-bulk-remove-url="{% url 'quiz:bulk_remove_quiz_words' quiz.id %}">
 
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3">
 
@@ -37,5 +38,6 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'quiz/js/quiz_manage_words.js' %}"></script>
+<!--  <script src="{% static 'quiz/js/quiz_manage_words.js' %}"></script>-->
+<script type="module" src="{% static 'quiz/js/manage/quiz_manage_words.js' %}"></script>
 {% endblock %}

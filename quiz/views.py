@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
+from django.db.models.functions import Lower
 from django.contrib import messages
 
 from .models import *
@@ -670,17 +671,20 @@ def word_list(request):
     query = request.GET.get('q', '').strip()
     language = request.GET.get('language', '').strip()
 
-    # Base queryset: ONLY this user's words
-    qs = Word.objects.filter(owner=request.user).order_by('original_word')
+    # ✅ Base queryset: ONLY this user's words
+    # ✅ Case-insensitive alphabetical order
+    qs = Word.objects.filter(owner=request.user).annotate(
+        original_lower=Lower("original_word")
+    ).order_by("original_lower")
 
-    # Filter by language if selected
+    # ✅ Filter by language if selected
     if language:
         qs = qs.filter(language=language)
 
-    # Convert to list so we can safely do Python-side filtering
+    # ✅ Convert to list for safe Python-side Unicode filtering
     all_words = list(qs)
 
-    # Text search (Unicode-aware, in Python)
+    # ✅ Case-insensitive, Unicode-safe text search
     if query:
         q = query.casefold()
         words = [
@@ -691,7 +695,7 @@ def word_list(request):
     else:
         words = all_words
 
-    # AJAX branch for live search
+    # ✅ AJAX branch for live search
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         results = [
             {
@@ -705,7 +709,7 @@ def word_list(request):
         ]
         return JsonResponse({'words': results})
 
-    # Normal full-page render: only this user's custom quizzes
+    # ✅ Normal full-page render: only this user's custom quizzes
     custom_quizzes = CustomQuiz.objects.filter(owner=request.user)
 
     return render(
@@ -921,6 +925,47 @@ def delete_word(request, pk):
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+@login_required
+@require_POST
+def bulk_delete_words(request):
+    try:
+        data = json.loads(request.body)
+        ids = data.get("ids", [])
+
+        if not ids:
+            return JsonResponse({"success": False, "error": "No IDs provided"})
+
+        Word.objects.filter(
+            id__in=ids,
+            owner=request.user
+        ).delete()
+
+        return JsonResponse({"success": True, "deleted_count": len(ids)})
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+
+@login_required
+@require_POST
+def bulk_remove_quiz_words(request, quiz_id):
+    """
+    Remove multiple words from a custom quiz in ONE request
+    """
+    word_ids = request.POST.getlist("word_ids[]")
+
+    if not word_ids:
+        return JsonResponse({"success": False, "error": "No words selected"})
+
+    quiz = get_object_or_404(CustomQuiz, id=quiz_id, owner=request.user)
+
+    quiz.words.remove(*word_ids)
+
+    return JsonResponse({"success": True})
+
 
 
 @login_required
