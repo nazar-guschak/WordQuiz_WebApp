@@ -58,24 +58,43 @@ window.initQuizzesAdd = function () {
         tr.dataset.id = quiz.id;
 
         tr.innerHTML = `
-          <td>
-            <a href="${quiz.detail_url}">${quiz.title}</a>
+          <!-- Checkbox -->
+          <td class="ws-check-cell">
+            <input type="checkbox" class="ws-check-input quiz-checkbox">
           </td>
-          <td>${quiz.word_count}</td>
-          <td class="action-buttons text-center">
-            <div class="d-flex gap-2 justify-content-center">
+
+          <!-- Quiz title -->
+          <td class="ws-col-original">
+            <a href="${quiz.detail_url}" class="text-decoration-none">
+              ${quiz.title}
+            </a>
+          </td>
+
+          <!-- Word count -->
+          <td class="ws-col-translation">
+            ${quiz.word_count}
+          </td>
+
+          <!-- Actions -->
+          <td class="ws-actions-cell">
+            <div class="btn-row">
+
               <button type="button"
-                      class="icon-action edit"
+                      class="btn-ws-icon edit"
                       title="Edit quiz"
+                      aria-label="Edit quiz"
                       onclick="window.location.href='${quiz.detail_url}'">
-                <i class="bi bi-pencil-square fs-5"></i>
+                <i class="bi bi-pencil-square"></i>
               </button>
+
               <button type="button"
-                      class="icon-action delete delete-btn"
-                      data-delete-url="${quiz.delete_url || ""}"
-                      title="Delete quiz">
-                <i class="bi bi-trash3 fs-5"></i>
+                      class="btn-ws-icon delete delete-btn"
+                      title="Delete quiz"
+                      aria-label="Delete quiz"
+                      data-delete-url="${quiz.delete_url}">
+                <i class="bi bi-trash3"></i>
               </button>
+
             </div>
           </td>
         `;

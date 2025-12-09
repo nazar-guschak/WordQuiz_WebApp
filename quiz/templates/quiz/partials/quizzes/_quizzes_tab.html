@@ -1,99 +1,105 @@
 {# templates/quiz/partials/quizzes/_quizzes_tab.html #}
 
-<div class="tab-pane fade"
-     id="quizzes-pane"
-     role="tabpanel"
-     aria-labelledby="quizzes-tab">
+<div class="tab-pane fade" id="quizzes-pane" role="tabpanel" aria-labelledby="quizzes-tab">
 
-  {# ========== Search + Add Quiz (responsive) ========== #}
-  <div class="row g-2 g-md-3 align-items-center mb-3">
-    {# Search input #}
-    <div class="col-12 col-md-8 col-lg-6">
-      <div class="input-group">
-        <span class="input-group-text">🔍</span>
-        <input
-          type="text"
-          id="quiz-search-input"
-          class="form-control"
-          placeholder="Search quizzes..."
-        >
-      </div>
+    {# ========== Search + Add + Bulk Delete (responsive) ========== #}
+    <div class="row g-2 g-md-3 align-items-center mb-3">
+
+        {# Search input #}
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="input-group">
+                <span class="input-group-text">🔍</span>
+                <input type="text" id="quiz-search-input" class="form-control" placeholder="Search quizzes...">
+            </div>
+        </div>
+
+        {# Action buttons (New + Delete) #}
+        <div class="col-12 col-md-auto d-flex gap-2">
+
+            <button id="quiz-add-btn" class="btn btn-ws-base btn-ws-success text-nowrap">
+                <i class="bi bi-plus-square me-1"></i>
+                New Quiz
+            </button>
+
+            <button id="bulk-delete-quizzes-btn" data-url="{% url 'quiz:bulk_delete_quizzes' %}" class="btn btn-ws-base btn-ws-danger text-nowrap d-none" disabled>
+                <i class="bi bi-trash3 me-1"></i>
+                Delete selected
+            </button>
+
+        </div>
     </div>
 
-    {# New Quiz button #}
-    <div class="col-12 col-md-auto">
-        <button
-          id="quiz-add-btn"
-          class="btn btn-ws-base btn-ws-success w-100 w-md-auto text-nowrap"
-        >
-          <i class="bi bi-plus-square me-1"></i>
-          New Quiz
-        </button>
+
+
+    {# ========== Table (Minimal WS Style + Bulk Ready) ========== #}
+    <div class="ws-table-wrapper">
+        <div class="ws-table-scroll">
+            <table class="ws-table">
+                <thead>
+                    <tr>
+
+                        {# Select all #}
+                        <th class="ws-check-header">
+                            <input type="checkbox" id="select-all-quizzes" class="ws-check-input">
+                        </th>
+
+                        <th>Name</th>
+                        <th>№ of Words</th>
+                        <th class="ws-actions-header">Actions</th>
+
+                    </tr>
+                </thead>
+
+                <tbody id="quiz-table-body">
+                    {% for quiz in custom_quizzes %}
+                    <tr data-id="{{ quiz.id }}">
+
+                        {# Row checkbox #}
+                        <td class="ws-check-cell">
+                            <input type="checkbox" class="ws-check-input quiz-checkbox">
+                        </td>
+
+                        {# Quiz name #}
+                        <td class="ws-col-original">
+                            <a href="{% url 'quiz:custom_quiz_detail' quiz.id %}" class="text-decoration-none">
+                                {{ quiz.title }}
+                            </a>
+                        </td>
+
+                        {# Word count #}
+                        <td class="ws-col-translation">
+                            {{ quiz.words.count }}
+                        </td>
+
+                        {# Actions #}
+                        <td class="ws-actions-cell">
+                            <div class="btn-row">
+
+                                {# Edit #}
+                                <button type="button" class="btn-ws-icon edit" title="Edit quiz" aria-label="Edit quiz" onclick="window.location.href='{% url 'quiz:custom_quiz_detail' quiz.id %}'">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+
+                                {# Delete #}
+                                <button type="button" class="btn-ws-icon delete delete-btn" title="Delete quiz" aria-label="Delete quiz" data-delete-url="{% url 'quiz:custom_quiz_delete' quiz.id %}">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+
+                            </div>
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">
+                            No quizzes found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
 
-  {# ========== Table ========== #}
-  <div class="table-responsive table-wrapper shadow-lg">
-    <table class="table table-striped table-hover table-sm mb-0">
-      <thead class="table-primary">
-        <tr>
-          <th class="ps-1">Name</th>
-          <th>№ of Words</th>
-          <th class="text-center" style="width: 90px;"></th>
-        </tr>
-      </thead>
-
-      <tbody id="quiz-table-body">
-        {% for quiz in custom_quizzes %}
-          <tr data-id="{{ quiz.id }}">
-            <td class="ps-1">
-              <a
-                href="{% url 'quiz:custom_quiz_detail' quiz.id %}"
-                class="text-decoration-none"
-              >
-                {{ quiz.title }}
-              </a>
-            </td>
-
-            <td>{{ quiz.words.count }}</td>
-
-            <td class="text-center pe-1">
-              <div class="d-flex justify-content-center gap-2">
-
-                {# Edit #}
-                <button
-                  type="button"
-                  class="icon-action edit"
-                  title="Edit quiz"
-                  aria-label="Edit quiz"
-                  onclick="window.location.href='{% url 'quiz:custom_quiz_detail' quiz.id %}'"
-                >
-                  <i class="bi bi-pencil-square fs-5"></i>
-                </button>
-
-                {# Delete #}
-                <button
-                  type="button"
-                  class="icon-action delete delete-btn"
-                  title="Delete quiz"
-                  aria-label="Delete quiz"
-                  data-delete-url="{% url 'quiz:custom_quiz_delete' quiz.id %}"
-                >
-                  <i class="bi bi-trash3 fs-5"></i>
-                </button>
-
-              </div>
-            </td>
-          </tr>
-
-        {% empty %}
-          <tr>
-            <td colspan="3" class="text-center text-muted py-3">
-              No quizzes found.
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
 </div>

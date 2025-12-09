@@ -7,4 +7,5 @@ onDOMReady(() => {
   initQuizzesAdd?.();
   initQuizzesDelete?.();
   initQuizzesSearch?.();
+  initQuizzesBulk?.();
 });

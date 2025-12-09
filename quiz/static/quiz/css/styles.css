@@ -366,3 +366,212 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+
+/* ============================
+   WORDS TABLE – MINIMAL STYLE
+============================ */
+
+/* Wrapper */
+.ws-table-wrapper {
+  margin: 0 auto;
+  max-width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(15, 35, 52, 0.08);
+}
+
+.ws-table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+table.ws-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+/* Header */
+.ws-table thead {
+  background: linear-gradient(to right, #eff6ff, #ffffff);
+}
+
+.ws-table thead th {
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* ✅ Language header alignment FIX */
+.ws-lang-header {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Rows */
+.ws-table tbody td {
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.ws-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Columns */
+.ws-col-original {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.ws-col-translation {
+  white-space: normal;
+}
+
+.ws-check-header,
+.ws-check-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.ws-check-input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3180ed;
+}
+
+/* ✅ Language Badge Alignment FIX */
+.ws-lang-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.ws-lang-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 8px;
+  background-color: #eef4ff;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Actions */
+.ws-actions-cell {
+  white-space: nowrap;
+  width: 1%;
+  text-align: right;
+  vertical-align: middle;
+}
+
+/* ✅ FORCE ICON BUTTONS TO STAY HORIZONTAL (FIXES STACKING) */
+.ws-actions-cell .btn-row {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ✅ REMOVE BLACK OUTLINE / BORDER FROM ICON BUTTONS */
+.ws-actions-cell .btn-ws-icon {
+  border: none;
+  outline: none;
+}
+
+.ws-actions-cell .btn-ws-icon:focus,
+.ws-actions-cell .btn-ws-icon:active {
+  outline: none;
+  box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 576px) {
+
+  table.ws-table {
+    font-size: 0.86rem;
+  }
+
+  .ws-table thead th,
+  .ws-table tbody td {
+    padding: 0.45rem 0.5rem;
+  }
+
+  /* Hide language */
+  .ws-lang-header,
+  .ws-lang-cell {
+    display: none;
+  }
+
+  /* Strong truncation */
+  .ws-col-original {
+    max-width: 90px;
+  }
+
+  /* No horizontal scrolling */
+  .ws-table-scroll {
+    overflow-x: hidden;
+  }
+
+  /* ✅ Tighter icons on mobile */
+  .ws-actions-cell .btn-row {
+    gap: 0.3rem;
+  }
+
+  .ws-actions-cell .btn-ws-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+}
+
+/* Center the Actions header so it aligns with the icons below */
+.ws-actions-header {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* ============================
+   MOBILE: EDGE-TO-EDGE TABLE
+============================ */
+@media (max-width: 576px) {
+
+  /* ✅ Kill global body padding on mobile */
+  body {
+    padding: 3%;
+  }
+
+  /* ✅ Remove outer margins + rounding so table hugs screen */
+  .ws-table-wrapper {
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* ✅ Remove padding from any Bootstrap containers wrapping it */
+  .container,
+  .container-fluid,
+  .tab-pane {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ✅ Slight internal table padding remains for touch comfort */
+  .ws-table thead th,
+  .ws-table tbody td {
+    padding: 0.45rem 0.5rem;
+  }
+}

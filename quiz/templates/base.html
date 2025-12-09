@@ -1,301 +1,304 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Word Stream{% endblock %}</title>
 
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'quiz/css/styles.css' %}">
     <link rel="icon" type="image/x-icon" href="{% static 'quiz/images/favicon.ico' %}">
-<style>
-  /* ===========================
+    <style>
+        /* ===========================
      Base layout & typography
      =========================== */
-  body {
-    background-color: #f9f9f9;
-    font-family: system-ui, sans-serif;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
+        body {
+            background-color: #f9f9f9;
+            font-family: system-ui, sans-serif;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
 
-  main {
-    padding: 2rem 1rem;
-    min-height: 80vh;
-  }
+        main {
+            padding: 2rem 1rem;
+            min-height: 80vh;
+        }
 
-  footer {
-    text-align: center;
-    color: #777;
-    padding: 1rem 0;
-    border-top: 1px solid #eee;
-    font-size: 0.9rem;
-  }
+        footer {
+            text-align: center;
+            color: #777;
+            padding: 1rem 0;
+            border-top: 1px solid #eee;
+            font-size: 0.9rem;
+        }
 
-  section {
-  overflow-x: hidden;
-    }
+        section {
+            overflow-x: hidden;
+        }
 
-  /* ===========================
+        /* ===========================
      Navbar
      =========================== */
-  nav.navbar {
-    background-color: #ffffff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
+        nav.navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
 
-  .navbar-brand {
-    font-weight: 600;
-    font-size: 1.3rem;
-  }
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.3rem;
+        }
 
-  .nav-link {
-    color: #333 !important;
-    font-weight: 500;
-  }
+        .nav-link {
+            color: #333 !important;
+            font-weight: 500;
+        }
 
-  .nav-link:hover {
-    color: #0d6efd !important;
-  }
+        .nav-link:hover {
+            color: #0d6efd !important;
+        }
 
-  /* Small avatar-style circle for username icon */
-  .user-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #0d6efd10;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.35rem;
-  }
+        /* Small avatar-style circle for username icon */
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #0d6efd10;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.35rem;
+        }
 
-  .user-avatar i {
-    font-size: 1rem;
-  }
+        .user-avatar i {
+            font-size: 1rem;
+        }
 
-  /* ===========================
+        /* ===========================
      Tables & row layout
      =========================== */
-  .table td,
-  .table th {
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+        .table td,
+        .table th {
+            padding-top: 0.55rem;
+            padding-bottom: 0.55rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-  .table td {
-    white-space: nowrap;
-  }
+        .table td {
+            white-space: nowrap;
+        }
 
-  .table-no-gap {
-    margin-bottom: 0;
-  }
+        .table-no-gap {
+            margin-bottom: 0;
+        }
 
-  .action-buttons {
-    white-space: nowrap;
-  }
+        .action-buttons {
+            white-space: nowrap;
+        }
 
-  /* ===========================
+        /* ===========================
      Icon action buttons (edit / delete)
      =========================== */
-  .icon-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+        .icon-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
 
-    padding: 4px;
-    margin: 0;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    outline: none;
-    cursor: pointer;
+            padding: 4px;
+            margin: 0;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
 
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease,
-      transform 0.15s ease;
-  }
+            transition:
+                background-color 0.15s ease,
+                color 0.15s ease,
+                transform 0.15s ease;
+        }
 
-  .icon-action i {
-    line-height: 1;
-  }
+        .icon-action i {
+            line-height: 1;
+        }
 
-  .icon-action.edit:hover {
-    background-color: rgba(13, 110, 253, 0.1);
-    color: #0d6efd;
-    transform: translateY(-1px);
-  }
+        .icon-action.edit:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+            transform: translateY(-1px);
+        }
 
-  .icon-action.delete:hover {
-    background-color: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-    transform: translateY(-1px);
-  }
+        .icon-action.delete:hover {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            transform: translateY(-1px);
+        }
 
-  #quiz-table-body .action-buttons,
-  #quiz-table-body .action-buttons * {
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
+        #quiz-table-body .action-buttons,
+        #quiz-table-body .action-buttons * {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
 
-  /* ===========================
+        /* ===========================
      Matching quiz styles
      =========================== */
-  .match-item {
-    padding-top: 0.9rem;
-    padding-bottom: 0.9rem;
-    font-size: 1.05rem;
-  }
+        .match-item {
+            padding-top: 0.9rem;
+            padding-bottom: 0.9rem;
+            font-size: 1.05rem;
+        }
 
-  .match-selected {
-    border-width: 2px;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.35);
-    background-color: rgba(13, 110, 253, 0.06);
-  }
+        .match-selected {
+            border-width: 2px;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.35);
+            background-color: rgba(13, 110, 253, 0.06);
+        }
 
-  .match-paired {
-    color: #0b3b73;
-  }
+        .match-paired {
+            color: #0b3b73;
+        }
 
-  .match-pair-1 {
-    background-color: #E8D7F1;
-    border-color: #90caf9;
-  }
+        .match-pair-1 {
+            background-color: #E8D7F1;
+            border-color: #90caf9;
+        }
 
-  .match-pair-2 {
-    background-color: #D3BCCC;
-    border-color: #80deea;
-  }
+        .match-pair-2 {
+            background-color: #D3BCCC;
+            border-color: #80deea;
+        }
 
-  .match-pair-3 {
-    background-color: #A167A5;
-    border-color: #a5d6a7;
-  }
+        .match-pair-3 {
+            background-color: #A167A5;
+            border-color: #a5d6a7;
+        }
 
-  .match-pair-4 {
-    background-color: #C196FB;
-    border-color: #ce93d8;
-  }
+        .match-pair-4 {
+            background-color: #C196FB;
+            border-color: #ce93d8;
+        }
 
-  .match-correct {
-    background-color: #d1e7dd !important;
-    border-color: #badbcc !important;
-  }
+        .match-correct {
+            background-color: #d1e7dd !important;
+            border-color: #badbcc !important;
+        }
 
-  .match-wrong {
-    background-color: #f8d7da !important;
-    border-color: #f5c2c7 !important;
-  }
+        .match-wrong {
+            background-color: #f8d7da !important;
+            border-color: #f5c2c7 !important;
+        }
 
-  .match-disabled {
-    pointer-events: none;
-    opacity: 0.9;
-  }
+        .match-disabled {
+            pointer-events: none;
+            opacity: 0.9;
+        }
 
-  /* ===========================
+        /* ===========================
      Mobile table tweaks
      =========================== */
-  @media (max-width: 768px) {
-    .table {
-      table-layout: fixed;
-      width: 100%;
-    }
+        @media (max-width: 768px) {
+            .table {
+                table-layout: fixed;
+                width: 100%;
+            }
 
-    .table td,
-    .table th {
-      white-space: nowrap;
-      word-break: normal;
-      overflow-wrap: normal;
-    }
-  }
-/* ============================================================
+            .table td,
+            .table th {
+                white-space: nowrap;
+                word-break: normal;
+                overflow-wrap: normal;
+            }
+        }
+
+        /* ============================================================
    Word Stream Flash Message — TOP CENTER, LARGE
    ============================================================ */
 
-#ws-flash-wrapper {
-  position: fixed;
-  top: 1.2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3000;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  pointer-events: none; /* allow clicks through */
-}
+        #ws-flash-wrapper {
+            position: fixed;
+            top: 1.2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            pointer-events: none;
+            /* allow clicks through */
+        }
 
-.ws-flash {
-  pointer-events: auto;
-  min-width: 320px;
-  max-width: 480px;
+        .ws-flash {
+            pointer-events: auto;
+            min-width: 320px;
+            max-width: 480px;
 
-  padding: 0.9rem 1.2rem;
-  border-radius: 1rem; /* more rounded */
-  font-size: 1.05rem;  /* bigger text */
-  font-weight: 600;    /* stronger */
-  text-align: center;
+            padding: 0.9rem 1.2rem;
+            border-radius: 1rem;
+            /* more rounded */
+            font-size: 1.05rem;
+            /* bigger text */
+            font-weight: 600;
+            /* stronger */
+            text-align: center;
 
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 
-  opacity: 0;
-  transform: translateY(-12px);
-  animation: ws-flash-fade 4.8s ease-out forwards;
-}
+            opacity: 0;
+            transform: translateY(-12px);
+            animation: ws-flash-fade 4.8s ease-out forwards;
+        }
 
-/* Success styling (same tones as your WS green button) */
-.ws-flash-success {
-  background-color: #ecfdf3;
-  border: 1px solid #bbf7d0;
-  color: #065f46;
-}
+        /* Success styling (same tones as your WS green button) */
+        .ws-flash-success {
+            background-color: #ecfdf3;
+            border: 1px solid #bbf7d0;
+            color: #065f46;
+        }
 
-@keyframes ws-flash-fade {
-  0% {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  12% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  75% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-}
+        @keyframes ws-flash-fade {
+            0% {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
 
-</style>
+            12% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            75% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
+        }
+    </style>
 </head>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".ws-flash").forEach((el) => {
-    el.addEventListener("animationend", () => el.remove());
-  });
-});
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".ws-flash").forEach((el) => {
+            el.addEventListener("animationend", () => el.remove());
+        });
+    });
 </script>
+
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'quiz:index' %}">
-                <img src="{% static 'quiz/images/logo.svg' %}"
-                 alt=""
-                 class="ws-logo me-2 align-middle">
+                <img src="{% static 'quiz/images/logo.svg' %}" alt="" class="ws-logo me-2 align-middle">
                 <span class="visually-hidden">Word Quiz</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarNav" aria-controls="navbarNav"
-                    aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -320,49 +323,41 @@ document.addEventListener("DOMContentLoaded", () => {
                 <!-- Right side: auth controls -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if user.is_authenticated %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center"
-                               href="#" role="button" data-bs-toggle="dropdown"
-                               aria-expanded="false">
-                                <span class="user-avatar">
-                                    <i class="bi bi-person"></i>
-                                </span>
-                                <span>{{ user.username }}</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm py-2"
-                                style="min-width: 180px;">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="user-avatar">
+                                <i class="bi bi-person"></i>
+                            </span>
+                            <span>{{ user.username }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm py-2" style="min-width: 180px;">
 
-                                <li>
-                                  <a class="dropdown-item py-2" href="{% url 'accounts:profile' %}">
+                            <li>
+                                <a class="dropdown-item py-2" href="{% url 'accounts:profile' %}">
                                     Profile
-                                  </a>
-                                </li>
-                                <li>
-                                  <a class="dropdown-item py-2 text-danger"
-                                     href="#"
-                                     data-bs-toggle="modal"
-                                     data-bs-target="#logoutModal">
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 text-danger" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
                                     Log out
-                                  </a>
-                                </li>
+                                </a>
+                            </li>
 
-                            </ul>
-                        </li>
-                    {% else %}
-                        <ul class="navbar-nav ms-lg-auto mb-2 mb-lg-0">
-                          <li class="nav-item">
-                            <a class="btn btn-ws-base btn-ws-outline me-lg-2 mb-2 mb-lg-0"
-                               href="{% url 'accounts:login' %}">
-                              Log in
-                            </a>
-                          </li>
-                          <li class="nav-item">
-                            <a class="btn btn-ws-base btn-ws-primary"
-                               href="{% url 'accounts:signup' %}">
-                              Sign up
-                            </a>
-                          </li>
                         </ul>
+                    </li>
+                    {% else %}
+                    <ul class="navbar-nav ms-lg-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="btn btn-ws-base btn-ws-outline me-lg-2 mb-2 mb-lg-0" href="{% url 'accounts:login' %}">
+                                Log in
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-ws-base btn-ws-primary" href="{% url 'accounts:signup' %}">
+                                Sign up
+                            </a>
+                        </li>
+                    </ul>
                     {% endif %}
                 </ul>
             </div>
@@ -379,56 +374,54 @@ document.addEventListener("DOMContentLoaded", () => {
     </footer>
 
     <!-- Logout confirmation modal -->
-    <div class="modal fade" id="logoutModal" tabindex="-1"
-         aria-labelledby="logoutModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
 
-          <div class="modal-header">
-            <h5 class="modal-title" id="logoutModalLabel">Confirm logout</h5>
-            <button type="button" class="btn-close"
-                    data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logoutModalLabel">Confirm logout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
 
-          <div class="modal-body">
-            Are you sure you want to log out?
-          </div>
+                <div class="modal-body">
+                    Are you sure you want to log out?
+                </div>
 
-          <div class="modal-footer">
-            <button type="button"
-                    class="btn btn-ws-ghost"
-                    data-bs-dismiss="modal">
-              Cancel
-            </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ws-ghost" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
 
-            <a class="btn btn-ws-danger"
-               href="{% url 'accounts:logout' %}">
-              Yes, log me out
-            </a>
-          </div>
+                    <a class="btn btn-ws-danger" href="{% url 'accounts:logout' %}">
+                        Yes, log me out
+                    </a>
+                </div>
 
+            </div>
         </div>
-      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const animatedItems = document.querySelectorAll(".ws-animate");
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const animatedItems = document.querySelectorAll(".ws-animate");
 
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15 });
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("visible");
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.15
+            });
 
-    animatedItems.forEach(el => observer.observe(el));
-  });
-</script>
+            animatedItems.forEach(el => observer.observe(el));
+        });
+    </script>
 
 </body>
+
 </html>

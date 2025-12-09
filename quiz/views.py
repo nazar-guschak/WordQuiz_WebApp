@@ -948,6 +948,28 @@ def bulk_delete_words(request):
         return JsonResponse({"success": False, "error": str(e)})
 
 
+@login_required
+@require_POST
+def bulk_delete_quizzes(request):
+    quiz_ids = request.POST.getlist("quiz_ids[]")
+
+    if not quiz_ids:
+        return JsonResponse(
+            {"success": False, "error": "No quizzes selected."}, status=400
+        )
+
+    from .models import CustomQuiz
+
+    quizzes = CustomQuiz.objects.filter(id__in=quiz_ids, owner=request.user)
+
+    deleted_count = quizzes.count()
+    quizzes.delete()
+
+    return JsonResponse({
+        "success": True,
+        "deleted": deleted_count
+    })
+
 
 @login_required
 @require_POST

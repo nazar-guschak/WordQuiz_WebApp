@@ -21,6 +21,7 @@ urlpatterns = [
     path("quiz/<int:quiz_id>/bulk-remove/", views.bulk_remove_quiz_words, name="bulk_remove_quiz_words"),
     path('quiz/create/', views.create_quiz, name='create_quiz'),
     path("quiz/custom_quiz/<int:quiz_id>/delete/", views.custom_quiz_delete, name="custom_quiz_delete"),
+    path("quizzes/bulk-delete/", views.bulk_delete_quizzes, name="bulk_delete_quizzes"),
 
     path("word_list/upload/", views.upload_words, name="upload_words"),
     path("word_list/upload/confirm/", views.confirm_import, name="confirm_import"),

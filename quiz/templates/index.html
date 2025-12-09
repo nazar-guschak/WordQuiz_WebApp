@@ -9,29 +9,28 @@
  HERO SECTION
 =========================== -->
 <section class="py-5 text-center">
-  <div class="container">
+    <div class="container">
 
-    <h1 class="fw-bold mb-4 hero-gradient-text ws-animat"
-        style="font-size: clamp(2.2rem, 4vw, 3.4rem);">
-      Твій <span>словник</span> в кишені
-    </h1>
+        <h1 class="fw-bold mb-4 hero-gradient-text ws-animat" style="font-size: clamp(2.2rem, 4vw, 3.4rem);">
+            Твій <span>словник</span> в кишені
+        </h1>
 
 
-    <p class="text-muted mx-auto mb-5 ws-animate" style="max-width: 720px; font-size: 1.1rem;">
-      Word Stream is a self-managed vocabulary learning system that adapts to your memory.
-      Add your own words, train them through smart quizzes, and watch your language skills grow naturally.
-    </p>
+        <p class="text-muted mx-auto mb-5 ws-animate" style="max-width: 720px; font-size: 1.1rem;">
+            Word Stream is a self-managed vocabulary learning system that adapts to your memory.
+            Add your own words, train them through smart quizzes, and watch your language skills grow naturally.
+        </p>
 
-    <div class="d-flex justify-content-center gap-3 flex-wrap ws-animate">
-      <a href="{% url 'quiz:quiz' %}" class="btn btn-ws-primary btn-lg px-4">
-        Try a Quiz
-      </a>
-      <a href="{% url 'accounts:signup' %}" class="btn btn-ws-soft btn-lg px-4">
-        Create Account
-      </a>
+        <div class="d-flex justify-content-center gap-3 flex-wrap ws-animate">
+            <a href="{% url 'quiz:quiz' %}" class="btn btn-ws-primary btn-lg px-4">
+                Try a Quiz
+            </a>
+            <a href="{% url 'accounts:signup' %}" class="btn btn-ws-soft btn-lg px-4">
+                Create Account
+            </a>
+        </div>
+
     </div>
-
-  </div>
 </section>
 
 
@@ -39,27 +38,26 @@
  LANGUAGES STRIP
 =========================== -->
 <section class="py-4 border-top border-bottom ws-flags-strip">
-  <div class="container text-center ws-animat">
+    <div class="container text-center ws-animat">
 
-    <h3 class="fw-semibold mb-3">
-      Learn in the languages you care about
-    </h3>
+        <h3 class="fw-semibold mb-3">
+            Learn in the languages you care about
+        </h3>
 
-    <!-- Flag Icons CDN (required) -->
-    <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css" />
+        <!-- Flag Icons CDN (required) -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css" />
 
-    <div class="d-flex justify-content-center gap-4 fs-3 flex-wrap opacity-75">
-      <span class="fi fi-ua"></span>
-      <span class="fi fi-es"></span>
-      <span class="fi fi-it"></span>
-      <span class="fi fi-fr"></span>
-      <span class="fi fi-pl"></span>
-      <span class="fi fi-de"></span>
-      <span class="fi fi-pt"></span>
+        <div class="d-flex justify-content-center gap-4 fs-3 flex-wrap opacity-75">
+            <span class="fi fi-ua"></span>
+            <span class="fi fi-es"></span>
+            <span class="fi fi-it"></span>
+            <span class="fi fi-fr"></span>
+            <span class="fi fi-pl"></span>
+            <span class="fi fi-de"></span>
+            <span class="fi fi-pt"></span>
+        </div>
+
     </div>
-
-  </div>
 </section>
 
 
@@ -67,66 +65,62 @@
  HOW IT WORKS (WITH CARDS)
 =========================== -->
 <section class="py-5 border-bottom">
-  <div class="container">
+    <div class="container">
 
-    <div class="text-center mb-5">
-      <h2 class="fw-bold mb-3">
-        How Word Stream Works
-      </h2>
-      <p class="text-muted mx-auto" style="max-width: 680px;">
-        No fixed curriculum. No pressure. You decide what you learn and how fast you progress.
-      </p>
-    </div>
-
-    <div class="row g-4">
-
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate"
-             style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
-          <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 01</div>
-          <h5 class="fw-semibold mb-2">Add Your Words</h5>
-          <p class="text-muted small mb-0">
-            Create your own personal dictionary. Add words manually or import them from files in your target languages.
-          </p>
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">
+                How Word Stream Works
+            </h2>
+            <p class="text-muted mx-auto" style="max-width: 680px;">
+                No fixed curriculum. No pressure. You decide what you learn and how fast you progress.
+            </p>
         </div>
-      </div>
 
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate"
-             style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
-          <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 02</div>
-          <h5 class="fw-semibold mb-2">Generate Smart Quizzes</h5>
-          <p class="text-muted small mb-0">
-            Word Stream builds quizzes from your words, focusing more on what you struggle with and less on what’s easy.
-          </p>
-        </div>
-      </div>
+        <div class="row g-4">
 
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate"
-             style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
-          <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 03</div>
-          <h5 class="fw-semibold mb-2">Train Your Memory</h5>
-          <p class="text-muted small mb-0">
-            Words come back over time based on their strength, so you move them from “I think I know this” to “I won’t forget this”.
-          </p>
-        </div>
-      </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate" style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
+                    <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 01</div>
+                    <h5 class="fw-semibold mb-2">Add Your Words</h5>
+                    <p class="text-muted small mb-0">
+                        Create your own personal dictionary. Add words manually or import them from files in your target languages.
+                    </p>
+                </div>
+            </div>
 
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate"
-             style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
-          <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 04</div>
-          <h5 class="fw-semibold mb-2">Review & Adjust</h5>
-          <p class="text-muted small mb-0">
-            Check your stats, tweak difficulty, and curate your lists. You stay fully in control of how and what you learn.
-          </p>
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate" style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
+                    <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 02</div>
+                    <h5 class="fw-semibold mb-2">Generate Smart Quizzes</h5>
+                    <p class="text-muted small mb-0">
+                        Word Stream builds quizzes from your words, focusing more on what you struggle with and less on what’s easy.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate" style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
+                    <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 03</div>
+                    <h5 class="fw-semibold mb-2">Train Your Memory</h5>
+                    <p class="text-muted small mb-0">
+                        Words come back over time based on their strength, so you move them from “I think I know this” to “I won’t forget this”.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="demo-card h-100 p-4 text-start rounded-4 ws-animate" style="background: #dceca3; border: 1px solid rgba(0,0,0,0.03);">
+                    <div class="fw-bold small text-uppercase mb-2 opacity-75">Step 04</div>
+                    <h5 class="fw-semibold mb-2">Review & Adjust</h5>
+                    <p class="text-muted small mb-0">
+                        Check your stats, tweak difficulty, and curate your lists. You stay fully in control of how and what you learn.
+                    </p>
+                </div>
+            </div>
+
         </div>
-      </div>
 
     </div>
-
-  </div>
 </section>
 
 
@@ -134,43 +128,43 @@
  VALUE SECTION (EXTENDED CONTENT)
 =========================== -->
 <section class="py-5 bg-light border-bottom">
-  <div class="container ws-animate">
+    <div class="container ws-animate">
 
-    <div class="row align-items-center g-5">
+        <div class="row align-items-center g-5">
 
-      <div class="col-12 col-lg-6">
-        <h2 class="fw-bold mb-4">
-          Designed for Long-Term Learning
-        </h2>
+            <div class="col-12 col-lg-6">
+                <h2 class="fw-bold mb-4">
+                    Designed for Long-Term Learning
+                </h2>
 
-        <p class="text-muted mb-3">
-          Word Stream is not about quick wins. It’s built for real progress.
-          Every word you add becomes part of a growing system that evolves with you.
-        </p>
+                <p class="text-muted mb-3">
+                    Word Stream is not about quick wins. It’s built for real progress.
+                    Every word you add becomes part of a growing system that evolves with you.
+                </p>
 
-        <p class="text-muted mb-3">
-          Whether you’re learning one language or five, preparing for exams, traveling,
-          or sharpening professional vocabulary — your learning flow stays organized,
-          measurable, and effective.
-        </p>
+                <p class="text-muted mb-3">
+                    Whether you’re learning one language or five, preparing for exams, traveling,
+                    or sharpening professional vocabulary — your learning flow stays organized,
+                    measurable, and effective.
+                </p>
 
-        <p class="text-muted">
-          You control the data. You control the pace. You control the results.
-        </p>
-      </div>
+                <p class="text-muted">
+                    You control the data. You control the pace. You control the results.
+                </p>
+            </div>
 
-      <div class="col-12 col-lg-6 text-center">
-        <p class="fw-semibold mb-2">Built for:</p>
-        <p class="text-muted mb-1">• Independent learners</p>
-        <p class="text-muted mb-1">• Language students</p>
-        <p class="text-muted mb-1">• Expats and travelers</p>
-        <p class="text-muted mb-1">• Exam preparation</p>
-        <p class="text-muted">• Polyglots & enthusiasts</p>
-      </div>
+            <div class="col-12 col-lg-6 text-center">
+                <p class="fw-semibold mb-2">Built for:</p>
+                <p class="text-muted mb-1">• Independent learners</p>
+                <p class="text-muted mb-1">• Language students</p>
+                <p class="text-muted mb-1">• Expats and travelers</p>
+                <p class="text-muted mb-1">• Exam preparation</p>
+                <p class="text-muted">• Polyglots & enthusiasts</p>
+            </div>
+
+        </div>
 
     </div>
-
-  </div>
 </section>
 
 
@@ -178,37 +172,33 @@
  FEEDBACK FORM (MINIMAL)
 =========================== -->
 <section class="py-5">
-  <div class="container" style="max-width: 520px;">
+    <div class="container" style="max-width: 520px;">
 
-    <h3 class="fw-bold text-center mb-3">
-      Have suggestions or feedback?
-    </h3>
+        <h3 class="fw-bold text-center mb-3">
+            Have suggestions or feedback?
+        </h3>
 
-    <p class="text-muted text-center mb-4">
-      Word Stream is evolving. Your input helps shape it.
-    </p>
+        <p class="text-muted text-center mb-4">
+            Word Stream is evolving. Your input helps shape it.
+        </p>
 
-    <form>
+        <form>
 
-      <div class="mb-3">
-        <input type="email"
-               class="form-control"
-               placeholder="Your email (optional)">
-      </div>
+            <div class="mb-3">
+                <input type="email" class="form-control" placeholder="Your email (optional)">
+            </div>
 
-      <div class="mb-3">
-        <textarea class="form-control"
-                  rows="4"
-                  placeholder="Your message"></textarea>
-      </div>
+            <div class="mb-3">
+                <textarea class="form-control" rows="4" placeholder="Your message"></textarea>
+            </div>
 
-      <button class="btn btn-ws-primary w-100">
-        Send Message
-      </button>
+            <button class="btn btn-ws-primary w-100">
+                Send Message
+            </button>
 
-    </form>
+        </form>
 
-  </div>
+    </div>
 </section>
 
 {% endblock %}
