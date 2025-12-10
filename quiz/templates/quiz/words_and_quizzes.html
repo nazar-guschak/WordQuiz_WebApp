@@ -6,7 +6,7 @@
 <div class="container mt-1">
   <h2 class="mb-4 text-center">Words &amp; Custom Quizzes</h2>
 
-  <!-- Tabs -->
+  {# ========= Tabs ========= #}
   <ul class="nav nav-tabs mb-3" id="listTabs" role="tablist">
     <li class="nav-item" role="presentation">
       <button
@@ -17,7 +17,8 @@
         type="button"
         role="tab"
         aria-controls="words-pane"
-        aria-selected="true">
+        aria-selected="true"
+      >
         Word List
       </button>
     </li>
@@ -30,37 +31,42 @@
         type="button"
         role="tab"
         aria-controls="quizzes-pane"
-        aria-selected="false">
+        aria-selected="false"
+      >
         Custom Quizzes
       </button>
     </li>
   </ul>
 
+  {# ========= Tab panes ========= #}
   <div class="tab-content" id="listTabsContent">
+    {# Word list tab: includes search, language filter (with Unknown), table, etc. #}
     {% include "quiz/partials/words/_words_tab.html" %}
+    {# Custom quizzes tab #}
     {% include "quiz/partials/quizzes/_quizzes_tab.html" %}
   </div>
 
-  {# Modals live here, outside tab panes, but still on this page #}
+  {# ========= Modals (shared) ========= #}
   {% include "quiz/partials/words/_word_modals.html" %}
   {% include "quiz/partials/quizzes/_quiz_modals.html" %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!--  <script src="{% static 'quiz/js/words_and_quizzes.js' %}"></script>-->
-<script src="{% static 'quiz/js/core/csrf.js' %}"></script>
-<script src="{% static 'quiz/js/core/dom_ready.js' %}"></script>
+  <script src="{% static 'quiz/js/core/csrf.js' %}"></script>
+  <script src="{% static 'quiz/js/core/dom_ready.js' %}"></script>
 
-<script src="{% static 'quiz/js/words/words_search.js' %}"></script>
-<script src="{% static 'quiz/js/words/words_bulk.js' %}"></script>
-<script src="{% static 'quiz/js/words/words_edit.js' %}"></script>
-<script src="{% static 'quiz/js/words/words_add.js' %}"></script>
+  {# Words JS (search, bulk actions, edit, add) #}
+  <script src="{% static 'quiz/js/words/words_search.js' %}"></script>
+  <script src="{% static 'quiz/js/words/words_bulk.js' %}"></script>
+  <script src="{% static 'quiz/js/words/words_edit.js' %}"></script>
+  <script src="{% static 'quiz/js/words/words_add.js' %}"></script>
 
-<script src="{% static 'quiz/js/quizzes/quizzes_add.js' %}"></script>
-<script src="{% static 'quiz/js/quizzes/quizzes_delete.js' %}"></script>
-<script src="{% static 'quiz/js/quizzes/quizzes_search.js' %}"></script>
+  {# Quizzes JS (add, delete, search, bulk delete) #}
+  <script src="{% static 'quiz/js/quizzes/quizzes_add.js' %}"></script>
+  <script src="{% static 'quiz/js/quizzes/quizzes_delete.js' %}"></script>
+  <script src="{% static 'quiz/js/quizzes/quizzes_search.js' %}"></script>
+  <script src="{% static 'quiz/js/quizzes/quiz_bulk_delete.js' %}"></script>
 
-<script src="{% static 'quiz/js/quizzes/quiz_bulk_delete.js' %}"></script>
-<script src="{% static 'quiz/js/app.js' %}"></script>
+  <script src="{% static 'quiz/js/app.js' %}"></script>
 {% endblock %}

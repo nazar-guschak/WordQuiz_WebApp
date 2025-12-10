@@ -36,11 +36,11 @@
           </div>
         </div>
 
-        <!-- Dynamic count for available words -->
+        <!-- Dynamic count for available words (JS will update) -->
         <p class="text-muted mb-2" id="available-word-count-text">
           Showing
-          <span id="available-word-count-number">{{ all_words|length }}</span>
-          word{% if all_words|length != 1 %}s{% endif %}
+          <span id="available-word-count-number">0</span>
+          words
         </p>
 
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
@@ -56,20 +56,7 @@
               </tr>
             </thead>
             <tbody id="available-word-table-body">
-              {% for word in all_words %}
-                <tr data-language="{{ word.language }}">
-                  <td>
-                    <input
-                      type="checkbox"
-                      class="available-word-checkbox"
-                      value="{{ word.id }}"
-                    >
-                  </td>
-                  <td>{{ word.original_word }}</td>
-                  <td>{{ word.translation }}</td>
-                  <td>{{ word.language|upper }}</td>
-                </tr>
-              {% endfor %}
+              {# JS fills this via quiz_candidate_words endpoint #}
             </tbody>
           </table>
         </div>

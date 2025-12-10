@@ -10,13 +10,25 @@
     <strong>Import words</strong>.
   </p>
 
+  {# ===== Warning banner for unknown-language rows ===== #}
+  {% if has_unknown_language %}
+    <div class="alert alert-warning d-flex align-items-start mb-3">
+      <div class="me-2">⚠</div>
+      <div>
+        Some rows have <strong>no recognized language</strong>.
+        These words will be <strong>saved but excluded from all quizzes</strong>
+        until you edit them and set a language.
+      </div>
+    </div>
+  {% endif %}
+
   <div class="card shadow-sm">
     <div class="card-body">
 
       {% if rows %}
 
         <div class="table-responsive">
-          <table class="table table-striped align-middle">
+          <table class="table align-middle mb-0">
             <thead>
               <tr>
                 <th>#</th>
@@ -27,11 +39,22 @@
             </thead>
             <tbody>
               {% for row in rows %}
-                <tr>
+                <tr class="{% if row.unknown_language %}table-warning{% endif %}">
                   <td>{{ forloop.counter }}</td>
                   <td>{{ row.original_word }}</td>
                   <td>{{ row.translation }}</td>
-                  <td>{{ row.language|upper }}</td>
+                  <td>
+                    {% if row.unknown_language %}
+                      <span class="badge bg-warning text-dark me-1">
+                        Unknown
+                      </span>
+                      <span class="text-muted small">
+                        Will not appear in quizzes
+                      </span>
+                    {% else %}
+                      {{ row.language|upper }}
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>

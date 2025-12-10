@@ -3,7 +3,7 @@ from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import Lower
 from django.contrib import messages
 
@@ -56,13 +56,17 @@ def index(request):
 # Main quiz flow (random quiz from all words)
 # ============================================================
 
+# views.py (or wherever your quiz() view is)
+
 def quiz(request):
     quiz_id = request.GET.get("quiz_id")
     start = request.GET.get("start")
     selected_language = request.GET.get("language", "").strip() or None
 
     # ---------- Choose base word pool ----------
-    base_words = get_base_words_queryset(request)
+    # ✅ Core rule: ONLY use quizable words with known language in any quiz
+    base_words_raw = get_base_words_queryset(request)
+    base_words = Word.quizable_qs(base_words_raw)
 
     # ---------- Custom quizzes: per-user only ----------
     custom_quizzes = get_base_quizzes_queryset(request)
@@ -106,7 +110,6 @@ def quiz(request):
 
     # ---------- CUSTOM QUIZ ----------
     if quiz_id:
-        # Custom quizzes are personal: only owner can run them
         if not request.user.is_authenticated:
             raise Http404("Quiz not found.")
 
@@ -116,13 +119,15 @@ def quiz(request):
             owner=request.user
         )
 
-        words_qs = list(current_quiz.words.order_by("original_word"))
+        # ✅ Only use quizable words with known language from this quiz
+        quiz_words_qs = Word.quizable_qs(current_quiz.words.all()).order_by("original_word")
+        words_qs = list(quiz_words_qs)
+
         order = [w.id for w in words_qs]
         random.shuffle(order)
 
         state = {
             "quiz_id": current_quiz.id,
-            # we've already served order[0] on this page
             "order": order,
             "current_index": 1 if order else 0,
             "score": 0,
@@ -132,10 +137,10 @@ def quiz(request):
         request.session.modified = True
 
         if state["total"] > 0:
-            first_word = current_quiz.words.get(pk=order[0])
+            first_word = quiz_words_qs.get(pk=order[0])
 
             choices = [first_word]
-            others = list(current_quiz.words.exclude(pk=first_word.pk))
+            others = list(quiz_words_qs.exclude(pk=first_word.pk))
             random.shuffle(others)
             choices.extend(others[:3])
             random.shuffle(choices)
@@ -164,13 +169,12 @@ def quiz(request):
         })
 
     # ---------- GENERAL QUIZ ----------
-    # APPLY LANGUAGE FILTER HERE
+    # ✅ base_words already restricted to quizable + known language
     if selected_language:
         filtered_words = base_words.filter(language=selected_language)
     else:
         filtered_words = base_words
 
-    # pick next question
     quiz_choices, correct_answer, direction = read_words(filtered_words)
 
     return render(request, "quiz/quiz.html", {
@@ -392,136 +396,151 @@ def check_answer(request):
 
 def next_quiz(request):
     """
-    General quiz:
-      - Infinite
-      - Word is chosen using priority logic in read_words()
-      - Direction (orig->trans or trans->orig) is random per question
-      - Can be filtered by language via ?language=<code>
-      - Can return either "choice" or "match" questions
-        (no two "match" questions in a row)
-
-    Custom quiz:
-      - Finite
-      - Words served in random order (no priority)
-      - Can also return "choice" or "match"
-        (no two "match" questions in a row)
-      - Score & basic state tracked in session ("custom_quiz_state")
+    Dispatch:
+      - No quiz_id    -> general quiz (infinite)
+      - With quiz_id  -> custom quiz (finite)
     """
     quiz_id = request.GET.get("quiz_id")
     language = request.GET.get("language", "").strip()
 
-    # ============================================================
-    # GENERAL QUIZ (infinite, supports choice + match)
-    # ============================================================
     if not quiz_id:
-        # Use per-user words if logged in, global words otherwise
-        base_qs = get_base_words_queryset(request)
-        if language:
-            base_qs = base_qs.filter(language=language)
+        payload = _build_general_quiz_step(request, language)
+    else:
+        payload = _build_custom_quiz_step(request, quiz_id)
 
-        # If there are no words at all, bail out cleanly
-        if not base_qs.exists():
-            return JsonResponse({
-                "finished": True,
-                "score": 0,
-                "total": 0,
-            })
+    return JsonResponse(payload)
 
-        # Track last question type for GENERAL quiz in the session
-        general_state = request.session.get("general_quiz_state") or {}
-        last_type = general_state.get("last_type")  # "choice" or "match"
 
-        # Is a match question even possible? We need at least 4 available words.
-        # (Use same timeout logic as read_words: only timeout <= 0 are available.)
-        available_words = list(base_qs.filter(timeout__lte=0))
-        match_possible = len(available_words) >= 4
+# ============================================================
+# GENERAL QUIZ (infinite, supports choice + match)
+# ============================================================
 
-        # Decide quiz type:
-        # - if match is possible and last_type != "match" -> random between choice/match
-        # - otherwise -> choice
-        if match_possible and last_type != "match":
-            quiz_type = random.choice(["choice", "match"])
-        else:
-            quiz_type = "choice"
+def _build_general_quiz_step(request, language_code: str) -> dict:
+    """
+    General quiz:
+      - Infinite
+      - Uses priority logic from read_words()/word_priority
+      - Direction (orig->trans or trans->orig) is random per question
+      - Can be filtered by language via ?language=<code>
+      - Can return "choice" or "match" (no two "match" in a row)
+    """
+    # Use per-user words if logged in, global words otherwise
+    base_qs = get_base_words_queryset(request)
 
-        # ---------------- MATCH TYPE (general quiz) ----------------
-        if quiz_type == "match":
-            # Use your priority logic to pick 4 top words
-            available_words.sort(key=word_priority, reverse=True)
-            group_words = available_words[:4]
+    # Only quizable + known-language words
+    base_qs = Word.quizable_qs(base_qs)
 
-            # Put the first chosen word into timeout, like read_words does.
-            # (We only call it once per question, to keep timeout logic consistent.)
+    if language_code:
+        base_qs = base_qs.filter(language=language_code)
+
+    # No words at all -> finished
+    if not base_qs.exists():
+        return {
+            "finished": True,
+            "score": 0,
+            "total": 0,
+        }
+
+    # Track last question type for GENERAL quiz in the session
+    general_state = request.session.get("general_quiz_state") or {}
+    last_type = general_state.get("last_type")  # "choice" or "match"
+
+    # Match requires at least 4 available words with timeout <= 0
+    available_words = list(base_qs.filter(timeout__lte=0))
+    match_possible = len(available_words) >= 4
+
+    quiz_type = _decide_general_quiz_type(match_possible, last_type)
+
+    # ---------- MATCH TYPE ----------
+    if quiz_type == "match":
+        # Priority logic: pick 4 top words
+        available_words.sort(key=word_priority, reverse=True)
+        group_words = available_words[:4]
+
+        # Put the first chosen word into timeout, like read_words does
+        if group_words:
             update_word_states(group_words[0])
 
-            # Build left/right columns
-            left_words = group_words[:]
-            right_words = group_words[:]
-            random.shuffle(left_words)
-            random.shuffle(right_words)
+        payload = _build_match_payload(group_words)
 
-            # Remember last_type
-            general_state["last_type"] = "match"
-            request.session["general_quiz_state"] = general_state
-            request.session.modified = True
-
-            return JsonResponse({
-                "finished": False,
-                "quiz_type": "match",
-                "instruction": "Match each word with its correct translation.",
-                "left_items": [
-                    {"id": w.id, "text": w.original_word}
-                    for w in left_words
-                ],
-                "right_items": [
-                    {"id": w.id, "text": w.translation}
-                    for w in right_words
-                ],
-                "question_word_ids": [w.id for w in group_words],
-            })
-
-        # ---------------- CHOICE TYPE (existing logic, general quiz) ----------------
-        quiz_choices, correct_answer, direction = read_words(base_qs)
-
-        if direction == "orig_to_trans":
-            question_text = correct_answer.original_word
-            correct_text = correct_answer.translation
-            choices_text = [w.translation for w in quiz_choices]
-        else:
-            question_text = correct_answer.translation
-            correct_text = correct_answer.original_word
-            choices_text = [w.original_word for w in quiz_choices]
-
-        # Remember last_type
-        general_state["last_type"] = "choice"
+        general_state["last_type"] = "match"
         request.session["general_quiz_state"] = general_state
         request.session.modified = True
 
-        return JsonResponse({
-            "finished": False,
-            "quiz_type": "choice",
-            "direction": direction,
-            "word": question_text,
-            "correct": correct_text,
-            "word_id": correct_answer.id,
-            "choices": choices_text,
-        })
+        return payload
 
-    # ============================================================
-    # CUSTOM QUIZ (random order, supports choice + match)
-    # ============================================================
+    # ---------- CHOICE TYPE ----------
+    quiz_choices, correct_answer, direction = read_words(base_qs)
+    payload = _build_general_choice_payload(quiz_choices, correct_answer, direction)
+
+    general_state["last_type"] = "choice"
+    request.session["general_quiz_state"] = general_state
+    request.session.modified = True
+
+    return payload
+
+
+def _decide_general_quiz_type(match_possible: bool, last_type: str | None) -> str:
+    """
+    - If match is possible and last_type != "match" -> random between choice/match
+    - Otherwise -> choice
+    """
+    if match_possible and last_type != "match":
+        return random.choice(["choice", "match"])
+    return "choice"
+
+
+def _build_general_choice_payload(quiz_choices, correct_answer, direction: str) -> dict:
+    """
+    Build JSON payload for a general multiple-choice question.
+    """
+    if direction == "orig_to_trans":
+        question_text = correct_answer.original_word
+        correct_text = correct_answer.translation
+        choices_text = [w.translation for w in quiz_choices]
+    else:
+        question_text = correct_answer.translation
+        correct_text = correct_answer.original_word
+        choices_text = [w.original_word for w in quiz_choices]
+
+    return {
+        "finished": False,
+        "quiz_type": "choice",
+        "direction": direction,
+        "word": question_text,
+        "correct": correct_text,
+        "word_id": correct_answer.id,
+        "choices": choices_text,
+    }
+
+
+# ============================================================
+# CUSTOM QUIZ (finite, random order, supports choice + match)
+# ============================================================
+
+def _build_custom_quiz_step(request, quiz_id: str) -> dict:
+    """
+    Custom quiz:
+      - Finite
+      - Words served in random order (no priority)
+      - Can return "choice" or "match" (no two "match" in a row)
+      - State stored in session["custom_quiz_state"]
+    """
     if not request.user.is_authenticated:
         raise Http404("Quiz not found.")
 
     quiz = get_object_or_404(CustomQuiz, pk=quiz_id, owner=request.user)
+
+    # Base queryset for this quiz: only quizable + known-language words
+    quiz_words_base = Word.quizable_qs(quiz.words.all())
+
     state = request.session.get("custom_quiz_state") or {}
 
     # (Re)initialize state if:
-    # - no state
-    # - state belongs to a different quiz
-    # - state has no order (corrupted)
+    # - different quiz
+    # - missing "order"
     if state.get("quiz_id") != quiz.id or "order" not in state:
-        words_qs = list(quiz.words.order_by("original_word"))
+        words_qs = list(quiz_words_base.order_by("original_word"))
         order = [w.id for w in words_qs]
         random.shuffle(order)
 
@@ -529,9 +548,9 @@ def next_quiz(request):
             "quiz_id": quiz.id,
             "order": order,
             "current_index": 0,   # index of the next *word* to serve
-            "score": 0,
+            "score": state.get("score", 0),  # keep score if you like, or reset to 0
             "total": len(order),  # total words in this custom quiz
-            "last_type": None,    # track last question type: "choice" or "match"
+            "last_type": None,    # "choice" or "match"
         }
 
     order = state["order"]
@@ -539,33 +558,21 @@ def next_quiz(request):
     idx = state.get("current_index", 0)
     last_type = state.get("last_type")
 
-    # If there are no words, or we've served them all -> finished
+    # Finished?
     if total == 0 or idx >= total:
         state["current_index"] = total
         request.session["custom_quiz_state"] = state
         request.session.modified = True
-
-        return JsonResponse({
+        return {
             "finished": True,
             "score": state.get("score", 0),
             "total": total,
-        })
+        }
 
     remaining = total - idx
+    quiz_type = _decide_custom_quiz_type(remaining, last_type)
 
-    # Decide quiz type:
-    # - If at least 4 words remaining -> randomly "choice" or "match"
-    # - If fewer than 4 remaining -> fallback to "choice"
-    # - BUT: do NOT allow "match" if last_type was also "match"
-    if remaining >= 4:
-        if last_type == "match":
-            quiz_type = "choice"
-        else:
-            quiz_type = random.choice(["choice", "match"])
-    else:
-        quiz_type = "choice"
-
-    # Build group of word IDs for this question
+    # Group IDs for this question
     if quiz_type == "match":
         group_ids = order[idx: idx + 4]
     else:
@@ -576,33 +583,29 @@ def next_quiz(request):
         state["current_index"] = total
         request.session["custom_quiz_state"] = state
         request.session.modified = True
-        return JsonResponse({
+        return {
             "finished": True,
             "score": state.get("score", 0),
             "total": total,
-        })
+        }
 
     # Fetch words and keep order matching group_ids
-    words = list(quiz.words.filter(pk__in=group_ids))
+    words = list(quiz_words_base.filter(pk__in=group_ids))
     id_to_word = {w.id: w for w in words}
     group_words = [id_to_word[wid] for wid in group_ids if wid in id_to_word]
 
-    # SAFETY: if for some reason we don't have enough words for a match, fall back
+    # If we don't have enough words for a match, fallback to choice
     if quiz_type == "match" and len(group_words) < 2:
         quiz_type = "choice"
         group_ids = order[idx: idx + 1]
-        words = list(quiz.words.filter(pk__in=group_ids))
+        words = list(quiz_words_base.filter(pk__in=group_ids))
         id_to_word = {w.id: w for w in words}
         group_words = [id_to_word[wid] for wid in group_ids if wid in id_to_word]
 
-    # ---------- MATCH TYPE (custom quiz) ----------
+    # ---------- MATCH TYPE ----------
     if quiz_type == "match":
-        left_words = group_words[:]
-        right_words = group_words[:]
-        random.shuffle(left_words)
-        random.shuffle(right_words)
+        payload = _build_match_payload(group_words, question_word_ids=group_ids)
 
-        # Advance index by number of words in this match question
         next_idx = idx + len(group_words)
         if next_idx > total:
             next_idx = total
@@ -612,30 +615,17 @@ def next_quiz(request):
         request.session["custom_quiz_state"] = state
         request.session.modified = True
 
-        return JsonResponse({
-            "finished": False,
-            "quiz_type": "match",
-            "instruction": "Match each word with its correct translation.",
-            "left_items": [
-                {"id": w.id, "text": w.original_word}
-                for w in left_words
-            ],
-            "right_items": [
-                {"id": w.id, "text": w.translation}
-                for w in right_words
-            ],
-            "question_word_ids": group_ids,
-        })
+        return payload
 
-    # ---------- Fallback / normal multiple-choice for this question ----------
-    # (Either we decided "choice", or match wasn't valid)
+    # ---------- CHOICE TYPE ----------
     main_id = group_ids[0]
     word = id_to_word[main_id]
 
+    # Build choices: 1 correct + up to 3 distractors
     choices = [word]
-    others = list(quiz.words.exclude(pk=word.pk))
+    others = list(quiz_words_base.exclude(pk=word.pk))
     random.shuffle(others)
-    choices.extend(others[:3])  # up to 3 distractors
+    choices.extend(others[:3])
     random.shuffle(choices)
 
     next_idx = idx + 1
@@ -647,14 +637,60 @@ def next_quiz(request):
     request.session["custom_quiz_state"] = state
     request.session.modified = True
 
-    return JsonResponse({
+    return {
         "finished": False,
         "quiz_type": "choice",
         "word": word.original_word,
         "correct": word.translation,
         "word_id": word.id,
         "choices": [c.translation for c in choices],
-    })
+    }
+
+
+def _decide_custom_quiz_type(remaining: int, last_type: str | None) -> str:
+    """
+    - If >= 4 remaining:
+        * if last_type == "match": force "choice"
+        * else random "choice" or "match"
+    - If < 4 remaining: "choice"
+    """
+    if remaining >= 4:
+        if last_type == "match":
+            return "choice"
+        return random.choice(["choice", "match"])
+    return "choice"
+
+
+# ============================================================
+# Shared helpers
+# ============================================================
+
+def _build_match_payload(group_words, question_word_ids=None) -> dict:
+    """
+    Build JSON payload for a matching question.
+    """
+    left_words = group_words[:]
+    right_words = group_words[:]
+    random.shuffle(left_words)
+    random.shuffle(right_words)
+
+    if question_word_ids is None:
+        question_word_ids = [w.id for w in group_words]
+
+    return {
+        "finished": False,
+        "quiz_type": "match",
+        "instruction": "Match each word with its correct translation.",
+        "left_items": [
+            {"id": w.id, "text": w.original_word}
+            for w in left_words
+        ],
+        "right_items": [
+            {"id": w.id, "text": w.translation}
+            for w in right_words
+        ],
+        "question_word_ids": question_word_ids,
+    }
 
 
 # ============================================================
@@ -671,15 +707,21 @@ def word_list(request):
     query = request.GET.get('q', '').strip()
     language = request.GET.get('language', '').strip()
 
-    # ✅ Base queryset: ONLY this user's words
-    # ✅ Case-insensitive alphabetical order
-    qs = Word.objects.filter(owner=request.user).annotate(
-        original_lower=Lower("original_word")
-    ).order_by("original_lower")
+    # ✅ Base queryset: ONLY this user's words (including unknown-language ones)
+    qs = (
+        Word.objects
+        .filter(owner=request.user)
+        .annotate(original_lower=Lower("original_word"))
+        .order_by("original_lower")
+    )
 
     # ✅ Filter by language if selected
     if language:
-        qs = qs.filter(language=language)
+        if language == "__unknown__":
+            # special filter: "unknown language"
+            qs = qs.filter(Q(language__isnull=True) | Q(language=""))
+        else:
+            qs = qs.filter(language=language)
 
     # ✅ Convert to list for safe Python-side Unicode filtering
     all_words = list(qs)
@@ -697,16 +739,22 @@ def word_list(request):
 
     # ✅ AJAX branch for live search
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        results = [
-            {
+        results = []
+        for w in words:
+            if w.language:
+                language_display = w.get_language_display()
+            else:
+                language_display = "Unknown"
+
+            results.append({
                 'id': w.id,
                 'original_word': w.original_word,
                 'translation': w.translation,
                 'language': w.language,
-                'language_display': w.get_language_display(),
-            }
-            for w in words
-        ]
+                'language_display': language_display,
+                'has_unknown_language': (not w.language),
+            })
+
         return JsonResponse({'words': results})
 
     # ✅ Normal full-page render: only this user's custom quizzes
@@ -743,7 +791,7 @@ def upload_words(request):
             messages.error(request, "The uploaded file is empty.")
             return redirect("quiz:upload_words")
 
-        # 3) Optional: simple extension check
+        # 3) Simple extension check
         valid_extensions = [".xlsx", ".xls", ".csv"]
         _, ext = os.path.splitext(uploaded_file.name.lower())
         if ext not in valid_extensions:
@@ -756,39 +804,44 @@ def upload_words(request):
 
         # 4) Parse file
         try:
-            rows = parse_words_file(uploaded_file)
+            rows = parse_words_file(uploaded_file)  # 🔑
 
         except ValidationError as e:
-            # e.messages is usually a list -> show each one cleanly (no [ ])
             if hasattr(e, "messages"):
                 for msg in e.messages:
                     messages.error(request, msg)
             else:
-                # Fallback, just in case
                 messages.error(request, str(e))
-
             return redirect("quiz:upload_words")
 
-        except Exception:
-            # Any other unexpected parsing/reading issue
+        except Exception as e:
+            # TEMP: show underlying error while debugging
+            # (you can later replace str(e) with a generic message again)
             messages.error(
                 request,
-                "Something went wrong while reading the file. "
-                "Please check that it has the correct columns and format."
+                f"Something went wrong while reading the file: {e}"
             )
             return redirect("quiz:upload_words")
 
-        # 5) Store preview data in session for the confirm step
+        # 5) Unknown-language flag for template
+        has_unknown_language = any(
+            bool(row.get("unknown_language")) for row in rows
+        )
+
+        # 6) Store preview data in session for the confirm step
         request.session["import_rows"] = rows
+        request.session["import_has_unknown_language"] = has_unknown_language
         request.session.modified = True
 
         # Show the preview table
         return render(request, "quiz/upload_preview.html", {
             "rows": rows,
+            "has_unknown_language": has_unknown_language,
         })
 
     # GET → show upload form
     return render(request, "quiz/upload_form.html")
+
 
 
 
@@ -802,6 +855,7 @@ def confirm_import(request):
     - Skips rows with missing original/translation
     - Uses get_or_create to avoid UNIQUE constraint errors
     - Treats words as unique per user by (owner/user, original_word, language)
+    - Sets is_quizable = False for unknown-language rows
     - Sets a flash message with the number of imported words
     """
     rows = request.session.get("import_rows") or []
@@ -815,11 +869,18 @@ def confirm_import(request):
     for row in rows:
         original = (row.get("original_word") or "").strip()
         translation = (row.get("translation") or "").strip()
-        language = (row.get("language") or "").strip() or None
+
+        # language from parse_words_file (already normalized to lower/"" for unknown)
+        language = (row.get("language") or "").strip().lower()
+        unknown_language = bool(row.get("unknown_language"))
 
         # Skip incomplete rows
         if not original or not translation:
             continue
+
+        # For unknown languages we store an empty string in the DB
+        if unknown_language:
+            language = ""
 
         # --------- Build the uniqueness key (align with your unique_together) ---------
         lookup_kwargs = {
@@ -836,6 +897,9 @@ def confirm_import(request):
         # Defaults for newly created records
         defaults = {
             "translation": translation,
+            # 🔑 core of Option A:
+            # unknown-language words are saved but NEVER appear in quizzes
+            "is_quizable": not unknown_language,
         }
 
         # --------- Safe create: no IntegrityError even with duplicates ---------
@@ -847,17 +911,15 @@ def confirm_import(request):
         if created:
             created_count += 1
         else:
-            # Optional: if you want to update translation on duplicates, uncomment:
-            #
+            # Optional: update translation if you want
             # if word_obj.translation != translation:
             #     word_obj.translation = translation
             #     word_obj.save(update_fields=["translation"])
-            #
-            # For now we just skip updating existing words.
             pass
 
     # Clean up session
     request.session.pop("import_rows", None)
+    request.session.pop("import_has_unknown_language", None)
     request.session.modified = True
 
     # --------- Flash message for the words page ---------
@@ -876,42 +938,107 @@ def confirm_import(request):
 
 
 @login_required
-def edit_word(request, pk):
+@require_POST
+def edit_word(request, pk=None):
     """
-    AJAX endpoint to edit a single Word (owned by current user).
+    AJAX endpoint to edit a Word (owned by current user).
+
+    Supports:
+      - URL with pk:   /words/<pk>/edit/
+      - Hidden 'id' field in POST: id=<pk>
+
+    Expects POST:
+      - original_word
+      - translation
+      - language ('' allowed -> unknown)
     """
-    word = get_object_or_404(Word, pk=pk, owner=request.user)
+    # Prefer explicit "id" from POST, fall back to pk from URL
+    word_id = request.POST.get("id") or pk
 
-    if request.method == 'POST':
-        original = request.POST.get('original_word', '').strip()
-        translation = request.POST.get('translation', '').strip()
-        language = request.POST.get('language', '').strip()
+    if not word_id:
+        return JsonResponse(
+            {"success": False, "error": "Missing word ID."},
+            status=400,
+        )
 
-        if not (original and translation and language):
-            return JsonResponse(
-                {'success': False, 'error': 'All fields are required.'}
-            )
+    word = get_object_or_404(Word, pk=word_id, owner=request.user)
 
-        # Validate language against choices to avoid arbitrary values
-        valid_languages = dict(Word.LANGUAGE_CHOICES)
-        if language not in valid_languages:
-            return JsonResponse(
-                {'success': False, 'error': 'Invalid language.'}
-            )
+    original = (request.POST.get("original_word") or "").strip()
+    translation = (request.POST.get("translation") or "").strip()
+    language = (request.POST.get("language") or "").strip().lower()
 
-        word.original_word = original
-        word.translation = translation
-        word.language = language
+    if not original or not translation:
+        return JsonResponse(
+            {"success": False, "error": "Original word and translation are required."},
+            status=400,
+        )
+
+    # Allow empty string as "unknown / not set"
+    valid_codes = {code for code, _ in Word.LANGUAGE_CHOICES}
+    if language and language not in valid_codes:
+        return JsonResponse(
+            {"success": False, "error": "Invalid language code."},
+            status=400,
+        )
+
+    # ---------- Uniqueness check BEFORE saving ----------
+    duplicate_exists = (
+        Word.objects
+        .filter(
+            owner=request.user,
+            original_word=original,
+            language=language,
+        )
+        .exclude(pk=word.pk)
+        .exists()
+    )
+
+    if duplicate_exists:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "You already have this word with the same language.",
+            },
+            status=400,
+        )
+
+    # ---------- Apply changes ----------
+    word.original_word = original
+    word.translation = translation
+    word.language = language  # "" = unknown / not set
+
+    # Business rule for Option A:
+    # - has language  -> can be quizzed
+    # - no language   -> excluded from quizzes
+    word.is_quizable = bool(language)
+
+    try:
         word.save()
+    except IntegrityError:
+        # Extra safety; should not trigger if duplicate check above is correct
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Could not save changes due to a duplicate word.",
+            },
+            status=400,
+        )
 
-        return JsonResponse({'success': True})
-
-    # Optional: current values for non-POST usage
-    return JsonResponse({
-        'original_word': word.original_word,
-        'translation': word.translation,
-        'language': word.language,
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "word": {
+                "id": word.id,
+                "original_word": word.original_word,
+                "translation": word.translation,
+                "language": word.language,
+                "language_display": (
+                    word.get_language_display() if word.language else "Unknown"
+                ),
+                "is_quizable": word.is_quizable,
+            },
+        }
+    )
 
 
 @login_required
@@ -1077,23 +1204,41 @@ def custom_quiz_detail(request, pk):
 def quiz_add_words(request, pk):
     """
     AJAX endpoint to add multiple words to a CustomQuiz (owned by current user).
+
+    - Only allows adding this user's words
+    - Only allows words with is_quizable=True
     """
     quiz = get_object_or_404(CustomQuiz, pk=pk, owner=request.user)
 
     # Support both 'word_ids[]' and 'word_ids' for flexibility
-    word_ids = request.POST.getlist('word_ids[]') or request.POST.getlist('word_ids')
+    word_ids = request.POST.getlist("word_ids[]") or request.POST.getlist("word_ids")
 
     if not word_ids:
-        return JsonResponse({'success': False, 'error': 'No words selected.'})
+        return JsonResponse({"success": False, "error": "No words selected."})
 
-    # Only allow adding this user's words
-    words = Word.objects.filter(id__in=word_ids, owner=request.user)
+    # ✅ Only allow adding this user's *quizable* words
+    words = Word.objects.filter(
+        id__in=word_ids,
+        owner=request.user,
+        is_quizable=True,   # <--- critical line
+    )
+
+    if not words.exists():
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "No valid words to add (unknown-language words are excluded).",
+            }
+        )
+
     quiz.words.add(*words)
 
-    return JsonResponse({
-        'success': True,
-        'word_count': quiz.words.count(),
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "word_count": quiz.words.count(),
+        }
+    )
 
 
 @login_required
@@ -1160,3 +1305,55 @@ def custom_quiz_delete(request, quiz_id):
     quiz = get_object_or_404(CustomQuiz, id=quiz_id, owner=request.user)
     quiz.delete()
     return JsonResponse({"success": True})
+
+
+@login_required
+def quiz_candidate_words(request, pk):
+    """
+    AJAX endpoint: list candidate words that CAN be added to this CustomQuiz.
+
+    - Only this user's words
+    - Only is_quizable=True
+    - Excludes words already in this quiz
+    - Supports optional q= and language= filters (same semantics as word_list)
+    """
+    quiz = get_object_or_404(CustomQuiz, pk=pk, owner=request.user)
+
+    query = (request.GET.get("q") or "").strip()
+    language = (request.GET.get("language") or "").strip()
+
+    # ✅ base: only this user's QUIZABLE words, not already in this quiz
+    qs = (
+        Word.objects
+        .filter(owner=request.user, is_quizable=True)
+        .exclude(id__in=quiz.words.values_list("id", flat=True))
+        .annotate(original_lower=Lower("original_word"))
+        .order_by("original_lower")
+    )
+
+    if language:
+        qs = qs.filter(language=language)
+
+    words = list(qs)
+
+    if query:
+        q = query.casefold()
+        words = [
+            w for w in words
+            if q in (w.original_word or "").casefold()
+               or q in (w.translation or "").casefold()
+        ]
+
+    data = [
+        {
+            "id": w.id,
+            "original_word": w.original_word,
+            "translation": w.translation,
+            "language": w.language,
+            "language_display": w.get_language_display()
+                if w.language else "Unknown",
+        }
+        for w in words
+    ]
+
+    return JsonResponse({"words": data})

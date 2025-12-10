@@ -2,11 +2,14 @@
 
 export function initAddWordsModal({
   csrfToken,
-  addWordsUrl
+  addWordsUrl, // optional fallback if data-add-url is not present
 }) {
   const addWordsBtn = document.getElementById("open-add-words-modal-btn");
   const addWordsModalEl = document.getElementById("addWordsModal");
-  const addWordsModal = addWordsModalEl ? new bootstrap.Modal(addWordsModalEl) : null;
+  const addWordsModal =
+    addWordsModalEl && window.bootstrap
+      ? new bootstrap.Modal(addWordsModalEl)
+      : null;
 
   const availableLanguageFilter = document.getElementById("available-language-filter");
   const availableSearchInput = document.getElementById("available-word-search");
@@ -15,35 +18,25 @@ export function initAddWordsModal({
   const confirmAddBtn = document.getElementById("add-words-confirm-btn");
   const availableWordCountNumber = document.getElementById("available-word-count-number");
 
-  // ✅ Case-insensitive, accent-safe sort (A–Z)
-  function sortAvailableRows() {
-    if (!availableTableBody) return;
+  if (!addWordsBtn || !addWordsModalEl || !availableTableBody) return;
 
-    const rows = Array.from(
-      availableTableBody.querySelectorAll("tr:not([data-empty='true'])")
-    );
+  // ✅ New: URLs from data attributes
+  const candidateUrl = addWordsBtn.dataset.candidateUrl || null;
+  const effectiveAddWordsUrl = addWordsBtn.dataset.addUrl || addWordsUrl;
 
-    rows.sort((a, b) => {
-      const aText = a.querySelector("td:nth-child(2)")?.textContent.trim() || "";
-      const bText = b.querySelector("td:nth-child(2)")?.textContent.trim() || "";
-
-      // ✅ FIX: ignores case + respects accents
-      return aText.localeCompare(bText, undefined, { sensitivity: "base" });
-    });
-
-    rows.forEach(row => availableTableBody.appendChild(row));
+  if (!candidateUrl || !effectiveAddWordsUrl) {
+    console.warn("Add words modal: candidateUrl or addWordsUrl missing.");
   }
+
+  // ===== Helpers =====
 
   function updateAvailableWordCount() {
     if (!availableWordCountNumber || !availableTableBody) return;
 
-    let count = 0;
-
-    availableTableBody.querySelectorAll("tr").forEach(row => {
-      if (row.style.display !== "none" && !row.dataset.empty) {
-        count++;
-      }
-    });
+    const rows = Array.from(
+      availableTableBody.querySelectorAll("tr:not([data-empty='true'])")
+    );
+    const count = rows.length;
 
     availableWordCountNumber.textContent = count;
 
@@ -61,76 +54,152 @@ export function initAddWordsModal({
         availableTableBody.appendChild(emptyRow);
       }
       emptyRow.style.display = "";
-    } else {
-      if (emptyRow) emptyRow.style.display = "none";
+    } else if (emptyRow) {
+      emptyRow.style.display = "none";
     }
   }
 
-  function applyAvailableFilters() {
+  function sortAvailableRows() {
     if (!availableTableBody) return;
 
-    const term = (availableSearchInput?.value || "").toLowerCase();
-    const lang = availableLanguageFilter?.value || "";
+    const rows = Array.from(
+      availableTableBody.querySelectorAll("tr:not([data-empty='true'])")
+    );
 
-    availableTableBody.querySelectorAll("tr").forEach(row => {
-      if (row.dataset.empty === "true") return;
+    rows.sort((a, b) => {
+      const aText =
+        a.querySelector("td:nth-child(2)")?.textContent.trim() || "";
+      const bText =
+        b.querySelector("td:nth-child(2)")?.textContent.trim() || "";
 
-      const cells = row.querySelectorAll("td");
-      if (cells.length < 4) return;
-
-      const rowLang = row.dataset.language || "";
-      const original = cells[1].textContent.toLowerCase();
-      const translation = cells[2].textContent.toLowerCase();
-
-      const matchesLanguage = !lang || rowLang === lang;
-      const matchesText = !term || original.includes(term) || translation.includes(term);
-
-      row.style.display = (matchesLanguage && matchesText) ? "" : "none";
+      return aText.localeCompare(bText, undefined, { sensitivity: "base" });
     });
 
-    // ✅ Re-sort AFTER filtering
-    sortAvailableRows();
-    updateAvailableWordCount();
+    rows.forEach((row) => availableTableBody.appendChild(row));
   }
 
-  availableSearchInput?.addEventListener("input", applyAvailableFilters);
-  availableLanguageFilter?.addEventListener("change", applyAvailableFilters);
+  // ===== Core: load candidates from backend =====
 
-  addWordsBtn?.addEventListener("click", () => {
+  async function loadAvailableWords() {
+    if (!candidateUrl) return;
+
+    const params = new URLSearchParams();
+    const term = (availableSearchInput?.value || "").trim();
+    const lang = availableLanguageFilter?.value || "";
+
+    if (term) params.set("q", term);
+    if (lang) params.set("language", lang);
+
+    try {
+      const resp = await fetch(`${candidateUrl}?${params.toString()}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const words = data.words || [];
+
+      // Clear old rows
+      availableTableBody.innerHTML = "";
+
+      if (!words.length) {
+        const emptyRow = document.createElement("tr");
+        emptyRow.dataset.empty = "true";
+        emptyRow.innerHTML = `
+          <td colspan="100%" class="text-center text-muted py-2 small">
+            No words found.
+          </td>
+        `;
+        availableTableBody.appendChild(emptyRow);
+        updateAvailableWordCount();
+        if (selectAllAvailable) selectAllAvailable.checked = false;
+        return;
+      }
+
+      words.forEach((w) => {
+        const row = document.createElement("tr");
+        row.dataset.language = w.language || "";
+        row.innerHTML = `
+          <td>
+            <input
+              type="checkbox"
+              class="available-word-checkbox"
+              value="${w.id}"
+            >
+          </td>
+          <td>${w.original_word}</td>
+          <td>${w.translation}</td>
+          <td>${w.language_display}</td>
+        `;
+        availableTableBody.appendChild(row);
+      });
+
+      // Sort + count after loading
+      sortAvailableRows();
+      updateAvailableWordCount();
+
+      if (selectAllAvailable) {
+        selectAllAvailable.checked = false;
+      }
+    } catch (err) {
+      console.error("Error loading available words:", err);
+      availableTableBody.innerHTML = `
+        <tr data-empty="true">
+          <td colspan="100%" class="text-center text-muted py-2 small">
+            Could not load words.
+          </td>
+        </tr>
+      `;
+      updateAvailableWordCount();
+      if (selectAllAvailable) selectAllAvailable.checked = false;
+    }
+  }
+
+  // ===== Filters trigger reload (server-side filtering) =====
+
+  availableSearchInput?.addEventListener("input", () => {
+    loadAvailableWords();
+  });
+
+  availableLanguageFilter?.addEventListener("change", () => {
+    loadAvailableWords();
+  });
+
+  // ===== Open modal =====
+
+  addWordsBtn.addEventListener("click", () => {
     if (availableSearchInput) availableSearchInput.value = "";
     if (availableLanguageFilter) availableLanguageFilter.value = "";
     if (selectAllAvailable) selectAllAvailable.checked = false;
 
-    availableTableBody?.querySelectorAll("tr").forEach(row => {
-      if (row.dataset.empty === "true") return;
-
-      row.style.display = "";
-      const cb = row.querySelector(".available-word-checkbox");
-      if (cb) cb.checked = false;
-    });
-
-    // ✅ Sort on modal open (case-insensitive)
-    sortAvailableRows();
-    updateAvailableWordCount();
-
+    loadAvailableWords();
     addWordsModal?.show();
   });
+
+  // ===== Select all =====
 
   selectAllAvailable?.addEventListener("change", () => {
     const checked = selectAllAvailable.checked;
     availableTableBody
       ?.querySelectorAll(".available-word-checkbox")
-      .forEach(cb => (cb.checked = checked));
+      .forEach((cb) => {
+        cb.checked = checked;
+      });
   });
+
+  // ===== Confirm add =====
 
   confirmAddBtn?.addEventListener("click", () => {
     const selected = [];
 
     availableTableBody
       ?.querySelectorAll(".available-word-checkbox:checked")
-      .forEach(cb => {
+      .forEach((cb) => {
         const row = cb.closest("tr");
-        if (row && row.style.display === "none") return;
+        if (row && row.dataset.empty === "true") return;
         selected.push(cb.value);
       });
 
@@ -140,9 +209,9 @@ export function initAddWordsModal({
     }
 
     const formData = new FormData();
-    selected.forEach(id => formData.append("word_ids[]", id));
+    selected.forEach((id) => formData.append("word_ids[]", id));
 
-    fetch(addWordsUrl, {
+    fetch(effectiveAddWordsUrl, {
       method: "POST",
       body: formData,
       headers: {
@@ -151,21 +220,19 @@ export function initAddWordsModal({
       },
       credentials: "same-origin",
     })
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         if (data.success) {
           window.location.reload();
         } else {
           alert(data.error || "Failed to add words.");
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Add words error:", err);
         alert("Network error while adding words.");
       });
   });
 
-  // ✅ Initial sort + count
-  sortAvailableRows();
-  updateAvailableWordCount();
+  // We no longer sort/count on init; rows are loaded via AJAX when modal opens
 }

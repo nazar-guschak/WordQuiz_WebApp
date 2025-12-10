@@ -575,3 +575,12 @@ table.ws-table {
     padding: 0.45rem 0.5rem;
   }
 }
+
+.ws-row-unknown {
+  background-color: rgba(255, 193, 7, 0.08); /* subtle warning tone */
+}
+
+.ws-lang-badge-unknown {
+  background-color: #ffc107;
+  color: #212529;
+}

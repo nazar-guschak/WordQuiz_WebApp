@@ -1,141 +1,209 @@
 {# templates/quiz/partials/words/_words_tab.html #}
 
-<div class="tab-pane fade show active" id="words-pane" role="tabpanel" aria-labelledby="words-tab">
+<div
+  class="tab-pane fade show active"
+  id="words-pane"
+  role="tabpanel"
+  aria-labelledby="words-tab"
+>
 
-    {# ===== Flash message for successful imports (WS green style) ===== #}
-    {% if messages %}
+  {# ===== Flash message for successful imports (WS green style) ===== #}
+  {% if messages %}
     <div id="ws-flash-wrapper">
-        {% for message in messages %}
+      {% for message in messages %}
         <div class="ws-flash ws-flash-success">
-            {{ message }}
+          {{ message }}
         </div>
-        {% endfor %}
+      {% endfor %}
     </div>
-    {% endif %}
+  {% endif %}
 
-    {# ========== Filters + Search + Actions (Words Tab) ========== #}
-    <div class="mb-3">
+  {# ========== Filters + Search + Actions (Words Tab) ========== #}
+  <div class="mb-3">
 
-        {# ===== Row 1: Search + Language filter ===== #}
-        <div class="row g-2 g-lg-3 align-items-lg-center mb-2">
+    {# ===== Row 1: Search + Language filter ===== #}
+    <div class="row g-2 g-lg-3 align-items-lg-center mb-2">
 
-            {# Search input (wide on desktop) #}
-            <div class="col-12 col-lg-9">
-                <div class="input-group">
-                    <span class="input-group-text">🔍</span>
-                    <input type="text" id="word-search-input" class="form-control" placeholder="Search by original word or translation..." value="{{ query }}">
-                </div>
-            </div>
-
-            {# Language dropdown #}
-            <div class="col-12 col-lg-3">
-                <select id="language-filter" class="form-select">
-                    <option value="">All languages</option>
-                    {% for code, name in language_choices %}
-                    <option value="{{ code }}">{{ name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
+      {# Search input (wide on desktop) #}
+      <div class="col-12 col-lg-9">
+        <div class="input-group">
+          <span class="input-group-text">🔍</span>
+          <input
+            type="text"
+            id="word-search-input"
+            class="form-control"
+            placeholder="Search by original word or translation..."
+            value="{{ query }}"
+          >
         </div>
+      </div>
 
-        {# ===== Row 2: Action buttons (left-aligned) ===== #}
-        <div class="d-flex flex-column flex-sm-row justify-content-start gap-2 mb-1">
+      {# Language dropdown (includes Unknown) #}
+      <div class="col-12 col-lg-3">
+        <select id="language-filter" class="form-select">
+          <option value="" {% if not selected_language %}selected{% endif %}>
+            All languages
+          </option>
 
-            <button id="add-word-btn" type="button" class="btn btn-ws-base btn-ws-success text-nowrap">
-                <i class="bi bi-plus-square me-1"></i>
-                Add Word
-            </button>
+          {% for code, name in language_choices %}
+            <option
+              value="{{ code }}"
+              {% if selected_language == code %}selected{% endif %}
+            >
+              {{ name }}
+            </option>
+          {% endfor %}
 
-            <a href="{% url 'quiz:upload_words' %}" class="btn btn-ws-base btn-ws-soft btn-ws-icon-label text-nowrap">
-                <i class="bi bi-upload"></i>
-                Import words
-            </a>
+          <option
+            value="__unknown__"
+            {% if selected_language == "__unknown__" %}selected{% endif %}
+          >
+            Unknown language
+          </option>
+        </select>
 
-            <button id="bulk-delete-words-btn" class="btn btn-ws-base btn-ws-danger d-none text-nowrap" disabled>
-                <i class="bi bi-trash3 me-1"></i>
-                Delete selected
-            </button>
+      </div>
 
-        </div>
     </div>
 
-    {# ========== Dynamic word count ========== #}
-    {% with words|length as word_count %}
+    {# ===== Row 2: Action buttons (left-aligned) ===== #}
+    <div class="d-flex flex-column flex-sm-row justify-content-start gap-2 mb-1">
+
+      <button
+        id="add-word-btn"
+        type="button"
+        class="btn btn-ws-base btn-ws-success text-nowrap"
+      >
+        <i class="bi bi-plus-square me-1"></i>
+        Add Word
+      </button>
+
+      <a
+        href="{% url 'quiz:upload_words' %}"
+        class="btn btn-ws-base btn-ws-soft btn-ws-icon-label text-nowrap"
+      >
+        <i class="bi bi-upload"></i>
+        Import words
+      </a>
+
+      <button
+        id="bulk-delete-words-btn"
+        class="btn btn-ws-base btn-ws-danger d-none text-nowrap"
+        disabled
+      >
+        <i class="bi bi-trash3 me-1"></i>
+        Delete selected
+      </button>
+
+    </div>
+  </div>
+
+  {# ========== Dynamic word count ========== #}
+  {% with words|length as word_count %}
     <p class="text-muted mb-3" id="word-count-text">
-        Showing
-        <span id="word-count-number">{{ word_count }}</span>
-        word{% if word_count != 1 %}s{% endif %}
+      Showing
+      <span id="word-count-number">{{ word_count }}</span>
+      word{% if word_count != 1 %}s{% endif %}
     </p>
-    {% endwith %}
+  {% endwith %}
 
-    {# ========== Table ========== #}
-    <div class="ws-table-wrapper">
-        <div class="ws-table-scroll">
-            <table class="ws-table">
-                <thead>
-                    <tr>
-                        <th class="ws-check-header">
-                            <input type="checkbox" id="word-select-all" class="ws-check-input">
-                        </th>
-                        <th>Original</th>
-                        <th>Translation</th>
-                        <th class="ws-lang-header">Language</th>
-                        <th class="ws-actions-header">Actions</th>
-                    </tr>
-                </thead>
+  {# ========== Table ========== #}
+  <div class="ws-table-wrapper">
+    <div class="ws-table-scroll">
+      <table class="ws-table">
+        <thead>
+          <tr>
+            <th class="ws-check-header">
+              <input
+                type="checkbox"
+                id="word-select-all"
+                class="ws-check-input"
+              >
+            </th>
+            <th>Original</th>
+            <th>Translation</th>
+            <th class="ws-lang-header">Language</th>
+            <th class="ws-actions-header">Actions</th>
+          </tr>
+        </thead>
 
-                <tbody id="word-table-body">
-                    {% for word in words %}
-                    <tr data-id="{{ word.id }}" data-language="{{ word.language }}">
+        <tbody id="word-table-body">
+          {% for word in words %}
+            <tr
+              data-id="{{ word.id }}"
+              data-language="{{ word.language }}"
+              class="{% if not word.language %}ws-row-unknown{% endif %}"
+            >
 
-                        <!-- ✅ Bulk checkbox -->
-                        <td class="ws-check-cell">
-                            <input type="checkbox" class="ws-check-input word-checkbox">
-                        </td>
+              {# ✅ Bulk checkbox #}
+              <td class="ws-check-cell">
+                <input
+                  type="checkbox"
+                  class="ws-check-input word-checkbox"
+                >
+              </td>
 
-                        <!-- ✅ Original -->
-                        <td class="ws-col-original">
-                            {{ word.original_word }}
-                        </td>
+              {# ✅ Original #}
+              <td class="ws-col-original">
+                {{ word.original_word }}
+              </td>
 
-                        <!-- ✅ Translation -->
-                        <td class="ws-col-translation">
-                            {{ word.translation }}
-                        </td>
+              {# ✅ Translation #}
+              <td class="ws-col-translation">
+                {{ word.translation }}
+              </td>
 
-                        <!-- ✅ Language -->
-                        <td class="ws-lang-cell">
-                            <span class="ws-lang-badge">
-                                {{ word.language|upper }}
-                            </span>
-                        </td>
+              {# ✅ Language #}
+              <td class="ws-lang-cell">
+                {% if word.language %}
+                  <span class="ws-lang-badge">
+                    {{ word.get_language_display }}
+                  </span>
+                {% else %}
+                  <span class="ws-lang-badge ws-lang-badge-unknown">
+                    Unknown
+                  </span>
+                  <span class="text-muted small d-block">
+                    Excluded from quizzes
+                  </span>
+                {% endif %}
+              </td>
 
-                        <!-- ✅ Actions -->
-                        <td class="ws-actions-cell">
-                            <div class="btn-row">
+              {# ✅ Actions #}
+              <td class="ws-actions-cell">
+                <div class="btn-row">
 
-                                <button type="button" class="btn-ws-icon edit edit-btn" title="Edit" aria-label="Edit word">
-                                    <i class="bi bi-pencil-square"></i>
-                                </button>
+                  <button
+                    type="button"
+                    class="btn-ws-icon edit edit-btn"
+                    title="Edit"
+                    aria-label="Edit word"
+                  >
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
 
-                                <button type="button" class="btn-ws-icon delete delete-btn" title="Delete" aria-label="Delete word">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
+                  <button
+                    type="button"
+                    class="btn-ws-icon delete delete-btn"
+                    title="Delete"
+                    aria-label="Delete word"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
 
-                            </div>
-                        </td>
+                </div>
+              </td>
 
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
-                            No words found.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                No words found.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
 </div>

@@ -17,6 +17,7 @@ urlpatterns = [
 
     path('quiz/<int:pk>/', views.custom_quiz_detail, name='custom_quiz_detail'),
     path('quiz/<int:pk>/add_words/', views.quiz_add_words, name='quiz_add_words'),
+    path("quizzes/<int:pk>/candidate-words/", views.quiz_candidate_words, name="quiz_candidate_words",),
     path('quiz/<int:pk>/remove_word/', views.quiz_remove_word, name='quiz_remove_word'),
     path("quiz/<int:quiz_id>/bulk-remove/", views.bulk_remove_quiz_words, name="bulk_remove_quiz_words"),
     path('quiz/create/', views.create_quiz, name='create_quiz'),
