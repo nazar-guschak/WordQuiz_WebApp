@@ -1,3 +1,5 @@
+// static/quiz/js/words/words_add.js (or wherever your current initWordsAdd lives)
+
 window.initWordsAdd = function () {
   const addBtn = document.getElementById("add-word-btn");
   const addModalEl = document.getElementById("addModal");
@@ -6,11 +8,12 @@ window.initWordsAdd = function () {
   const addRowBtn = document.getElementById("add-row-btn");
   const languageSelect = document.getElementById("add-language");
 
-  if (!addBtn || !addForm || !container || !addModalEl) return;
+  // ✅ Optional (only exists if user has quizzes)
+  const quizSelect = document.getElementById("add-quiz");
 
-  const addModal = window.bootstrap
-    ? new bootstrap.Modal(addModalEl)
-    : null;
+  if (!addBtn || !addForm || !container || !addModalEl || !languageSelect) return;
+
+  const addModal = window.bootstrap ? new bootstrap.Modal(addModalEl) : null;
 
   function createRow() {
     const row = document.createElement("div");
@@ -23,21 +26,17 @@ window.initWordsAdd = function () {
         <input class="form-control translation-input" placeholder="Translation">
       </div>
       <div class="col-auto">
-        <button type="button"
-                class="btn btn-outline-danger btn-sm remove-row-btn">
-          ×
-        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">×</button>
       </div>
     `;
     return row;
   }
 
-  // ✅ Hide X if only 1 row exists, show if 2+
   function updateRemoveButtonsVisibility() {
     const rows = container.querySelectorAll(".word-row");
     const showRemove = rows.length > 1;
 
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const btn = row.querySelector(".remove-row-btn");
       if (!btn) return;
       btn.style.display = showRemove ? "inline-flex" : "none";
@@ -45,52 +44,56 @@ window.initWordsAdd = function () {
   }
 
   function reset() {
+    addForm.reset(); // resets language + optional quiz too
     container.innerHTML = "";
     container.appendChild(createRow());
-    updateRemoveButtonsVisibility(); // ✅ Apply rule on reset
+    updateRemoveButtonsVisibility();
   }
 
-  // ✅ Open modal
   addBtn.addEventListener("click", () => {
     reset();
     addModal?.show();
   });
 
-  // ✅ Add another row
-  addRowBtn?.addEventListener("click", e => {
+  addRowBtn?.addEventListener("click", (e) => {
     e.preventDefault();
     container.appendChild(createRow());
-    updateRemoveButtonsVisibility(); // ✅ Re-check after adding
+    updateRemoveButtonsVisibility();
   });
 
-  // ✅ Remove row
-  container.addEventListener("click", e => {
+  container.addEventListener("click", (e) => {
     if (!e.target.classList.contains("remove-row-btn")) return;
 
     const row = e.target.closest(".word-row");
     if (!row) return;
 
     const rows = container.querySelectorAll(".word-row");
-
     if (rows.length === 1) {
-      row.querySelectorAll("input").forEach(i => i.value = "");
+      row.querySelectorAll("input").forEach((i) => (i.value = ""));
     } else {
       row.remove();
     }
 
-    updateRemoveButtonsVisibility(); // ✅ Re-check after removing
+    updateRemoveButtonsVisibility();
   });
 
-  // ✅ Submit words
-  addForm.addEventListener("submit", async e => {
+  addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    const language = languageSelect.value;
+    if (!language) {
+      alert("Please select a language.");
+      return;
+    }
+
+    const quizId = quizSelect?.value?.trim() || ""; // optional
+
     const pairs = [...container.querySelectorAll(".word-row")]
-      .map(row => ({
-        original: row.querySelector(".original-input").value.trim(),
-        translation: row.querySelector(".translation-input").value.trim()
+      .map((row) => ({
+        original: row.querySelector(".original-input")?.value.trim() || "",
+        translation: row.querySelector(".translation-input")?.value.trim() || "",
       }))
-      .filter(p => p.original && p.translation);
+      .filter((p) => p.original && p.translation);
 
     if (!pairs.length) {
       alert("Please fill in at least one word pair.");
@@ -98,28 +101,32 @@ window.initWordsAdd = function () {
     }
 
     const token = getCSRFToken();
-    const language = languageSelect.value;
 
-    if (!language) {
-      alert("Please select a language.");
-      return;
-    }
-
+    // Submit sequentially (keeps your current behavior)
     for (const pair of pairs) {
       const fd = new FormData();
       fd.append("original_word", pair.original);
       fd.append("translation", pair.translation);
       fd.append("language", language);
 
-      await fetch("/word_list/add/", {
+      if (quizId) fd.append("quiz_id", quizId);
+
+      const res = await fetch("/word_list/add/", {
         method: "POST",
         body: fd,
         headers: {
           "X-CSRFToken": token,
-          "X-Requested-With": "XMLHttpRequest"
+          "X-Requested-With": "XMLHttpRequest",
         },
-        credentials: "same-origin"
+        credentials: "same-origin",
       });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        alert(data?.error || "Failed to add a word.");
+        return; // stop on first error
+      }
     }
 
     addModal?.hide();

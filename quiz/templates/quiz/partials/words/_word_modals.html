@@ -4,17 +4,19 @@
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
+
       <div class="modal-header">
         <h5 class="modal-title">Edit Word</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
       <div class="modal-body">
         <form id="edit-form" method="post">
           {% csrf_token %}
           <input type="hidden" id="edit-id" name="id">
 
           <div class="mb-3">
-            <label class="form-label">Original Word</label>
+            <label for="edit-original" class="form-label">Original Word</label>
             <input
               type="text"
               id="edit-original"
@@ -25,7 +27,7 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Translation</label>
+            <label for="edit-translation" class="form-label">Translation</label>
             <input
               type="text"
               id="edit-translation"
@@ -36,103 +38,126 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Language</label>
-            <select
-              id="edit-language"
-              name="language"
-              class="form-select"
-              required
-            >
-              {# Allow explicit "unknown / not set" so imported unknown-language words work #}
+            <label for="edit-language" class="form-label">Language</label>
+            <select id="edit-language" name="language" class="form-select" required>
               <option value="">Unknown / not set</option>
-
               {% for code, name in language_choices %}
                 <option value="{{ code }}">{{ name }}</option>
               {% endfor %}
             </select>
           </div>
 
-          <div class="text-end">
-            <button
-              type="button"
-              class="btn btn-ws-base btn-ws-ghost"
-              data-bs-dismiss="modal"
-            >
+          {# ✅ New: quiz selector (only if at least one quiz exists) #}
+          {% if user_quizzes %}
+            <div class="mb-3">
+              <label for="edit-quiz" class="form-label">Add to quiz (optional)</label>
+              <select id="edit-quiz" name="quiz_id" class="form-select">
+                <option value="">Don’t add to a quiz</option>
+                {% for q in user_quizzes %}
+                  <option value="{{ q.id }}">{{ q.title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-ws-base btn-ws-ghost" data-bs-dismiss="modal">
               Cancel
             </button>
-            <button
-              type="submit"
-              class="btn btn-ws-base btn-ws-success"
-            >
+            <button type="submit" class="btn btn-ws-base btn-ws-success">
               Save
             </button>
           </div>
         </form>
       </div>
-    </div> {# modal-content #}
-  </div> {# modal-dialog #}
-</div> {# modal #}
+
+    </div>
+  </div>
+</div>
+
 
 {# ===================== Add Word Modal (multi-row) ===================== #}
 <div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
+
       <div class="modal-header">
-        <h5 class="modal-title">Add New Words</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title d-flex align-items-center gap-2 mb-0">
+          <span aria-hidden="true">➕</span>
+          Add words
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
-        <form id="add-form" method="post">
-          {% csrf_token %}
 
-          {# One language for all rows #}
-          <div class="mb-3">
-            <label class="form-label">Language for these words</label>
-            <select
-              id="add-language"
-              name="language"
-              class="form-select"
-              required
+      <form id="add-form" method="post">
+        {% csrf_token %}
+
+        <div class="modal-body">
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 {% if user_quizzes %}col-md-6{% endif %}">
+              <label for="add-language" class="form-label mb-1">
+                Language <span class="text-danger">*</span>
+              </label>
+
+              <select id="add-language" name="language" class="form-select" required>
+                {# Placeholder: required + not selectable #}
+                <option value="" selected disabled>Select language…</option>
+
+                {% for code, name in language_choices %}
+                  <option value="{{ code }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+
+              <div class="form-text">
+                Pick one language for all rows in this batch.
+              </div>
+            </div>
+
+            {% if user_quizzes %}
+              <div class="col-12 col-md-6">
+                <label for="add-quiz" class="form-label mb-1">
+                  Add to quiz (optional)
+                </label>
+
+                <select id="add-quiz" name="quiz_id" class="form-select">
+                  <option value="">Don’t add to a quiz</option>
+                  {% for q in user_quizzes %}
+                    <option value="{{ q.id }}">{{ q.title }}</option>
+                  {% endfor %}
+                </select>
+
+                <div class="form-text">
+                  Words will be saved to your list and also added to this quiz.
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div id="word-rows-container" class="d-grid gap-2"></div>
+
+          <div class="mt-3">
+            <button
+              type="button"
+              id="add-row-btn"
+              class="btn btn-ws-base btn-ws-ghost w-100 w-sm-auto"
             >
-              {% for code, name in language_choices %}
-                <option value="{{ code }}">{{ name }}</option>
-              {% endfor %}
-            </select>
+              <span aria-hidden="true">＋</span> Add another row
+            </button>
           </div>
 
-          <div id="word-rows-container" class="mb-3">
-            {# JS will insert .word-row blocks here #}
-          </div>
+        </div>
 
-          <button
-            type="button"
-            id="add-row-btn"
-            class="btn btn-ws-base btn-ws-outline btn-sm mb-3 text-nowrap"
-          >
-            <i class="bi bi-plus-square me-1"></i>
-            Add more
+        <div class="modal-footer d-flex gap-2">
+          <button type="button" class="btn btn-ws-base btn-ws-ghost" data-bs-dismiss="modal">
+            Cancel
           </button>
+          <button type="submit" class="btn btn-ws-base btn-ws-success">
+            Save
+          </button>
+        </div>
+      </form>
 
-          <div class="text-end">
-            <button
-              type="submit"
-              data-action="close"
-              class="btn btn-ws-base btn-ws-success text-nowrap"
-            >
-              <i class="bi bi-check-circle me-1"></i>
-              Save &amp; Close
-            </button>
-            <button
-              type="submit"
-              data-action="add"
-              class="btn btn-ws-base btn-ws-soft text-nowrap"
-            >
-              <i class="bi bi-plus-square me-1"></i>
-              Save &amp; Add More
-            </button>
-          </div>
-        </form>
-      </div>
-    </div> {# modal-content #}
-  </div> {# modal-dialog #}
-</div> {# modal #}
+    </div>
+  </div>
+</div>

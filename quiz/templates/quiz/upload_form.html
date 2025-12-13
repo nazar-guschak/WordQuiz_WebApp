@@ -3,26 +3,26 @@
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
-  <div class="card shadow-sm p-4" style="width: 100%; max-width: 500px;">
+  <div class="card shadow-sm p-4" style="width: 100%; max-width: 520px;">
 
-    <h2 class="text-center mb-3">Import Words</h2>
+    <h2 class="text-center mb-2">Import Words</h2>
+
+    {% if quiz %}
+      <p class="text-center text-muted mb-3">
+        These words will be added to quiz: <strong>{{ quiz.title }}</strong>
+      </p>
+    {% endif %}
+
     {% if messages %}
       <div class="mt-2 mb-3">
         {% for message in messages %}
           <div class="alert alert-warning alert-dismissible fade show small rounded-3 shadow-sm" role="alert">
-
             {{ message }}
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="alert"
-              aria-label="Close"
-            ></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         {% endfor %}
       </div>
     {% endif %}
-
 
     <p class="text-muted text-center mb-4">
       Upload a CSV or Excel file with columns like:<br>
@@ -31,6 +31,11 @@
 
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
+
+      {# ✅ keep quiz context through POST #}
+      {% if quiz %}
+        <input type="hidden" name="quiz_id" value="{{ quiz.id }}">
+      {% endif %}
 
       <div class="mb-3">
         <label for="id_file" class="form-label">Choose file</label>
@@ -45,17 +50,18 @@
       </div>
 
       <div class="d-flex justify-content-between mt-4">
-        <a
-          href="{% url 'quiz:word_list' %}"
-          class="btn btn-ws-base btn-ws-ghost text-nowrap"
-        >
-          Cancel
-        </a>
+        {# ✅ Cancel returns to quiz manage page if importing into quiz #}
+        {% if quiz %}
+          <a href="{% url 'quiz:custom_quiz_detail' quiz.id %}" class="btn btn-ws-base btn-ws-ghost text-nowrap">
+            Cancel
+          </a>
+        {% else %}
+          <a href="{% url 'quiz:word_list' %}" class="btn btn-ws-base btn-ws-ghost text-nowrap">
+            Cancel
+          </a>
+        {% endif %}
 
-        <button
-          type="submit"
-          class="btn btn-ws-base btn-ws-primary text-nowrap"
-        >
+        <button type="submit" class="btn btn-ws-base btn-ws-primary text-nowrap">
           <i class="bi bi-upload me-1"></i>
           Upload &amp; Preview
         </button>
@@ -64,5 +70,4 @@
 
   </div>
 </div>
-
 {% endblock %}

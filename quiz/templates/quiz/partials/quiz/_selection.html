@@ -31,23 +31,39 @@
           </div>
 
           {% if has_multiple_languages %}
-            <!-- Language selector (only for general quiz) -->
-            <div class="mb-3" id="language-wrapper">
-              <label for="quiz-language" class="form-label fw-semibold">
-                Language (for general quiz)
-              </label>
-              <select name="language" id="quiz-language" class="form-select">
-                <option value="">All languages</option>
-                {% for lang in quiz_languages %}
-                  <option value="{{ lang.code }}"
-                          data-word-count="{{ lang.count }}"
-                          {% if lang.code == selected_language %}selected{% endif %}>
-                    {{ lang.name }} ({{ lang.count }} words)
-                  </option>
-                {% endfor %}
-              </select>
+          <!-- Language selector (only for general quiz) -->
+          <div class="mb-3" id="language-wrapper">
+            <label for="quiz-language" class="form-label fw-semibold">
+              Language (for general quiz)
+            </label>
+
+            <select
+              name="language"
+              id="quiz-language"
+              class="form-select"
+              required
+            >
+              <!-- Placeholder (shown by default, NOT selectable) -->
+              <option value="" selected disabled>
+                Select language…
+              </option>
+
+              {% for lang in quiz_languages %}
+                <option
+                  value="{{ lang.code }}"
+                  data-word-count="{{ lang.count }}"
+                  {% if lang.code == selected_language %}selected{% endif %}
+                >
+                  {{ lang.name }} ({{ lang.count }} words)
+                </option>
+              {% endfor %}
+            </select>
+
+            <div class="form-text">
+              Required for the general quiz. Custom quizzes ignore this setting.
             </div>
-          {% endif %}
+          </div>
+        {% endif %}
 
           <!-- Warning if not enough words -->
           <div id="quiz-warning" class="alert alert-warning d-none small mt-2 mb-0">

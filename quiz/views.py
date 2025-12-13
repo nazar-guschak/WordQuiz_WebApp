@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.db.models.functions import Lower
 from django.contrib import messages
+from django.db import transaction
 
 from .models import *
 from .services import *
@@ -699,15 +700,9 @@ def _build_match_payload(group_words, question_word_ids=None) -> dict:
 
 @login_required
 def word_list(request):
-    """
-    Combined view that renders:
-      - Word list (with live search + CRUD via AJAX)
-      - Custom quizzes tab (list of CustomQuiz objects)
-    """
     query = request.GET.get('q', '').strip()
     language = request.GET.get('language', '').strip()
 
-    # ✅ Base queryset: ONLY this user's words (including unknown-language ones)
     qs = (
         Word.objects
         .filter(owner=request.user)
@@ -715,18 +710,14 @@ def word_list(request):
         .order_by("original_lower")
     )
 
-    # ✅ Filter by language if selected
     if language:
         if language == "__unknown__":
-            # special filter: "unknown language"
             qs = qs.filter(Q(language__isnull=True) | Q(language=""))
         else:
             qs = qs.filter(language=language)
 
-    # ✅ Convert to list for safe Python-side Unicode filtering
     all_words = list(qs)
 
-    # ✅ Case-insensitive, Unicode-safe text search
     if query:
         q = query.casefold()
         words = [
@@ -737,28 +728,22 @@ def word_list(request):
     else:
         words = all_words
 
-    # ✅ AJAX branch for live search
+    # ✅ AJAX branch
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         results = []
         for w in words:
-            if w.language:
-                language_display = w.get_language_display()
-            else:
-                language_display = "Unknown"
-
             results.append({
                 'id': w.id,
                 'original_word': w.original_word,
                 'translation': w.translation,
                 'language': w.language,
-                'language_display': language_display,
+                'language_display': w.get_language_display() if w.language else "Unknown",
                 'has_unknown_language': (not w.language),
             })
-
         return JsonResponse({'words': results})
 
-    # ✅ Normal full-page render: only this user's custom quizzes
-    custom_quizzes = CustomQuiz.objects.filter(owner=request.user)
+    # ✅ For quizzes tab + for the new dropdown
+    custom_quizzes = CustomQuiz.objects.filter(owner=request.user).order_by("title")
 
     return render(
         request,
@@ -766,97 +751,102 @@ def word_list(request):
         {
             'words': words,
             'query': query,
-            'custom_quizzes': custom_quizzes,
+            'custom_quizzes': custom_quizzes,   # existing tab
+            'user_quizzes': custom_quizzes,     # ✅ used by Add Word modal dropdown
             'language_choices': Word.LANGUAGE_CHOICES,
             'selected_language': language,
         }
     )
 
 
+
+
+@login_required
 def upload_words(request):
     """
-    Step 1: show upload form
+    Step 1: show upload form (quiz-aware via ?quiz_id=)
     Step 2: on POST, parse file and show preview table
+
+    If quiz_id is provided:
+      - validate quiz ownership
+      - store quiz_id in session as "import_quiz_id"
+      - preview/confirm will add eligible words to that quiz
     """
+    quiz_id = (request.GET.get("quiz_id") or request.POST.get("quiz_id") or "").strip()
+    quiz = None
+
+    if quiz_id:
+        quiz = get_object_or_404(CustomQuiz, id=quiz_id, owner=request.user)
+
     if request.method == "POST":
         uploaded_file = request.FILES.get("file")
 
-        # 1) No file selected
         if not uploaded_file:
             messages.error(request, "Please choose a file to upload.")
-            return redirect("quiz:upload_words")
+            return redirect("quiz:upload_words" + (f"?quiz_id={quiz.id}" if quiz else ""))
 
-        # 2) Empty file
         if uploaded_file.size == 0:
             messages.error(request, "The uploaded file is empty.")
-            return redirect("quiz:upload_words")
+            return redirect("quiz:upload_words" + (f"?quiz_id={quiz.id}" if quiz else ""))
 
-        # 3) Simple extension check
         valid_extensions = [".xlsx", ".xls", ".csv"]
         _, ext = os.path.splitext(uploaded_file.name.lower())
         if ext not in valid_extensions:
             messages.error(
                 request,
-                "Unsupported file type. Please upload an Excel (.xlsx / .xls) "
-                "or CSV file."
+                "Unsupported file type. Please upload an Excel (.xlsx / .xls) or CSV file."
             )
-            return redirect("quiz:upload_words")
+            return redirect("quiz:upload_words" + (f"?quiz_id={quiz.id}" if quiz else ""))
 
-        # 4) Parse file
         try:
-            rows = parse_words_file(uploaded_file)  # 🔑
-
+            rows = parse_words_file(uploaded_file)
         except ValidationError as e:
             if hasattr(e, "messages"):
                 for msg in e.messages:
                     messages.error(request, msg)
             else:
                 messages.error(request, str(e))
-            return redirect("quiz:upload_words")
-
+            return redirect("quiz:upload_words" + (f"?quiz_id={quiz.id}" if quiz else ""))
         except Exception as e:
-            # TEMP: show underlying error while debugging
-            # (you can later replace str(e) with a generic message again)
-            messages.error(
-                request,
-                f"Something went wrong while reading the file: {e}"
-            )
-            return redirect("quiz:upload_words")
+            messages.error(request, f"Something went wrong while reading the file: {e}")
+            return redirect("quiz:upload_words" + (f"?quiz_id={quiz.id}" if quiz else ""))
 
-        # 5) Unknown-language flag for template
-        has_unknown_language = any(
-            bool(row.get("unknown_language")) for row in rows
-        )
+        has_unknown_language = any(bool(row.get("unknown_language")) for row in rows)
 
-        # 6) Store preview data in session for the confirm step
+        # Store preview data in session for confirm step
         request.session["import_rows"] = rows
         request.session["import_has_unknown_language"] = has_unknown_language
+
+        # ✅ store quiz context too
+        request.session["import_quiz_id"] = quiz.id if quiz else ""
         request.session.modified = True
 
-        # Show the preview table
         return render(request, "quiz/upload_preview.html", {
             "rows": rows,
             "has_unknown_language": has_unknown_language,
+            "quiz": quiz,  # ✅ show “import into quiz” banner + hidden quiz_id in template
         })
 
-    # GET → show upload form
-    return render(request, "quiz/upload_form.html")
+    # GET -> show upload form
+    return render(request, "quiz/upload_form.html", {
+        "quiz": quiz,  # ✅ display quiz context + hidden quiz_id
+    })
 
 
 
+from django.db import IntegrityError
+from django.db.models import F
+from django.views.decorators.http import require_POST
 
 @login_required
 @require_POST
 def confirm_import(request):
     """
-    Step 3: user clicked 'Import' on preview → actually create Word objects.
+    Step 3: user clicked 'Import' on preview → create Word objects.
 
-    - Reads parsed rows from session ("import_rows")
-    - Skips rows with missing original/translation
-    - Uses get_or_create to avoid UNIQUE constraint errors
-    - Treats words as unique per user by (owner/user, original_word, language)
-    - Sets is_quizable = False for unknown-language rows
-    - Sets a flash message with the number of imported words
+    If quiz_id is provided (POST hidden OR session import_quiz_id):
+      - also add eligible words to that CustomQuiz
+      - eligible = is_quizable=True (unknown-language rows are excluded)
     """
     rows = request.session.get("import_rows") or []
 
@@ -864,45 +854,45 @@ def confirm_import(request):
         messages.error(request, "No import data found. Please upload a file again.")
         return redirect("quiz:upload_words")
 
+    # Prefer POST, fallback to session
+    quiz_id = (request.POST.get("quiz_id") or request.session.get("import_quiz_id") or "").strip()
+    quiz = None
+    if quiz_id:
+        quiz = get_object_or_404(CustomQuiz, id=quiz_id, owner=request.user)
+
     created_count = 0
+    words_to_add = []
 
     for row in rows:
         original = (row.get("original_word") or "").strip()
         translation = (row.get("translation") or "").strip()
 
-        # language from parse_words_file (already normalized to lower/"" for unknown)
         language = (row.get("language") or "").strip().lower()
         unknown_language = bool(row.get("unknown_language"))
 
-        # Skip incomplete rows
         if not original or not translation:
             continue
 
-        # For unknown languages we store an empty string in the DB
         if unknown_language:
             language = ""
 
-        # --------- Build the uniqueness key (align with your unique_together) ---------
         lookup_kwargs = {
             "original_word": original,
             "language": language,
         }
 
-        # Per-user uniqueness: adjust depending on your model field
+        # Your project uses owner in many places (word_list, add_word, etc.)
+        # Keep the fallback checks as you wrote originally.
         if hasattr(Word, "user"):
             lookup_kwargs["user"] = request.user
         elif hasattr(Word, "owner"):
             lookup_kwargs["owner"] = request.user
 
-        # Defaults for newly created records
         defaults = {
             "translation": translation,
-            # 🔑 core of Option A:
-            # unknown-language words are saved but NEVER appear in quizzes
             "is_quizable": not unknown_language,
         }
 
-        # --------- Safe create: no IntegrityError even with duplicates ---------
         word_obj, created = Word.objects.get_or_create(
             **lookup_kwargs,
             defaults=defaults,
@@ -910,19 +900,33 @@ def confirm_import(request):
 
         if created:
             created_count += 1
-        else:
-            # Optional: update translation if you want
-            # if word_obj.translation != translation:
-            #     word_obj.translation = translation
-            #     word_obj.save(update_fields=["translation"])
-            pass
+
+        # ✅ Assign to quiz if this import is quiz-scoped and word is quizable
+        if quiz and getattr(word_obj, "is_quizable", False):
+            words_to_add.append(word_obj)
+
+    added_count = 0
+    if quiz and words_to_add:
+        # M2M add ignores duplicates
+        quiz.words.add(*words_to_add)
+        added_count = len(words_to_add)
 
     # Clean up session
     request.session.pop("import_rows", None)
     request.session.pop("import_has_unknown_language", None)
+    request.session.pop("import_quiz_id", None)
     request.session.modified = True
 
-    # --------- Flash message for the words page ---------
+    # Flash messages + redirect
+    if quiz:
+        messages.success(
+            request,
+            f"Imported {created_count} new word{'s' if created_count != 1 else ''}. "
+            f"Added {added_count} to “{quiz.title}”."
+        )
+        # Your manage page view is custom_quiz_detail(pk) rendering quiz_manage_words.html
+        return redirect("quiz:custom_quiz_detail", quiz.id)
+
     if created_count:
         messages.success(
             request,
@@ -937,6 +941,7 @@ def confirm_import(request):
     return redirect("quiz:word_list")
 
 
+
 @login_required
 @require_POST
 def edit_word(request, pk=None):
@@ -944,28 +949,25 @@ def edit_word(request, pk=None):
     AJAX endpoint to edit a Word (owned by current user).
 
     Supports:
-      - URL with pk:   /words/<pk>/edit/
+      - URL with pk: /word_list/<pk>/edit/
       - Hidden 'id' field in POST: id=<pk>
 
     Expects POST:
       - original_word
       - translation
       - language ('' allowed -> unknown)
+      - quiz_id (optional) -> add this word to that quiz (no removal from other quizzes)
     """
-    # Prefer explicit "id" from POST, fall back to pk from URL
     word_id = request.POST.get("id") or pk
-
     if not word_id:
-        return JsonResponse(
-            {"success": False, "error": "Missing word ID."},
-            status=400,
-        )
+        return JsonResponse({"success": False, "error": "Missing word ID."}, status=400)
 
     word = get_object_or_404(Word, pk=word_id, owner=request.user)
 
     original = (request.POST.get("original_word") or "").strip()
     translation = (request.POST.get("translation") or "").strip()
     language = (request.POST.get("language") or "").strip().lower()
+    quiz_id_raw = (request.POST.get("quiz_id") or "").strip()
 
     if not original or not translation:
         return JsonResponse(
@@ -973,72 +975,73 @@ def edit_word(request, pk=None):
             status=400,
         )
 
-    # Allow empty string as "unknown / not set"
     valid_codes = {code for code, _ in Word.LANGUAGE_CHOICES}
     if language and language not in valid_codes:
-        return JsonResponse(
-            {"success": False, "error": "Invalid language code."},
-            status=400,
-        )
+        return JsonResponse({"success": False, "error": "Invalid language code."}, status=400)
 
-    # ---------- Uniqueness check BEFORE saving ----------
     duplicate_exists = (
         Word.objects
-        .filter(
-            owner=request.user,
-            original_word=original,
-            language=language,
-        )
+        .filter(owner=request.user, original_word=original, language=language)
         .exclude(pk=word.pk)
         .exists()
     )
-
     if duplicate_exists:
         return JsonResponse(
-            {
-                "success": False,
-                "error": "You already have this word with the same language.",
-            },
+            {"success": False, "error": "You already have this word with the same language."},
             status=400,
         )
 
-    # ---------- Apply changes ----------
+    # ---- Apply changes ----
     word.original_word = original
     word.translation = translation
     word.language = language  # "" = unknown / not set
-
-    # Business rule for Option A:
-    # - has language  -> can be quizzed
-    # - no language   -> excluded from quizzes
     word.is_quizable = bool(language)
 
+    # ---- Optional: add to selected quiz ----
+    quiz = None
+    if quiz_id_raw:
+        try:
+            quiz_id = int(quiz_id_raw)
+        except ValueError:
+            return JsonResponse({"success": False, "error": "Invalid quiz."}, status=400)
+
+        quiz = CustomQuiz.objects.filter(id=quiz_id, owner=request.user).first()
+        if not quiz:
+            return JsonResponse({"success": False, "error": "Quiz not found."}, status=404)
+
+        # Business rule: unknown-language words should not be in quizzes
+        if not word.is_quizable:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "This word has no language, so it can’t be added to quizzes.",
+                },
+                status=400,
+            )
+
     try:
-        word.save()
+        with transaction.atomic():
+            word.save()
+            if quiz:
+                quiz.words.add(word)
     except IntegrityError:
-        # Extra safety; should not trigger if duplicate check above is correct
         return JsonResponse(
-            {
-                "success": False,
-                "error": "Could not save changes due to a duplicate word.",
-            },
+            {"success": False, "error": "Could not save changes due to a duplicate word."},
             status=400,
         )
 
-    return JsonResponse(
-        {
-            "success": True,
-            "word": {
-                "id": word.id,
-                "original_word": word.original_word,
-                "translation": word.translation,
-                "language": word.language,
-                "language_display": (
-                    word.get_language_display() if word.language else "Unknown"
-                ),
-                "is_quizable": word.is_quizable,
-            },
-        }
-    )
+    return JsonResponse({
+        "success": True,
+        "word": {
+            "id": word.id,
+            "original_word": word.original_word,
+            "translation": word.translation,
+            "language": word.language,
+            "language_display": (word.get_language_display() if word.language else "Unknown"),
+            "is_quizable": word.is_quizable,
+        },
+        "added_to_quiz": (quiz.id if quiz else None),
+    })
 
 
 @login_required
@@ -1118,56 +1121,55 @@ def bulk_remove_quiz_words(request, quiz_id):
 
 
 @login_required
+@require_POST
 def add_word(request):
-    """
-    AJAX endpoint to add a new Word for the current user.
-    """
-    if request.method == "POST":
-        original = request.POST.get("original_word", "").strip()
-        translation = request.POST.get("translation", "").strip()
-        language = request.POST.get("language", "").strip()
+    original = request.POST.get("original_word", "").strip()
+    translation = request.POST.get("translation", "").strip()
+    language = request.POST.get("language", "").strip()
+    quiz_id = (request.POST.get("quiz_id") or "").strip()
 
-        if not (original and translation and language):
-            return JsonResponse(
-                {"success": False, "error": "All fields are required."}
-            )
+    if not (original and translation and language):
+        return JsonResponse({"success": False, "error": "All fields are required."}, status=400)
 
-        valid_languages = dict(Word.LANGUAGE_CHOICES)
-        if language not in valid_languages:
-            return JsonResponse(
-                {"success": False, "error": "Invalid language."}
-            )
+    valid_languages = dict(Word.LANGUAGE_CHOICES)
+    if language not in valid_languages:
+        return JsonResponse({"success": False, "error": "Invalid language."}, status=400)
 
-        # Enforce uniqueness per user + language
-        exists = Word.objects.filter(
-            owner=request.user,
-            original_word=original,
-            language=language
-        ).exists()
+    exists = Word.objects.filter(
+        owner=request.user,
+        original_word=original,
+        language=language
+    ).exists()
 
-        if exists:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "error": "This word already exists for this language.",
-                }
-            )
+    if exists:
+        return JsonResponse({"success": False, "error": "This word already exists for this language."}, status=409)
 
-        word = Word.objects.create(
-            owner=request.user,          # 👈 tie to current user
-            original_word=original,
-            translation=translation,
-            language=language,
-        )
+    word = Word.objects.create(
+        owner=request.user,
+        original_word=original,
+        translation=translation,
+        language=language,
+    )
 
-        return JsonResponse({
-            "success": True,
-            "word_id": word.id,
-            "language": word.language,
-            "language_display": word.get_language_display(),
-        })
+    # ✅ Optional: add to a custom quiz
+    if quiz_id:
+        try:
+            quiz_id_int = int(quiz_id)
+        except ValueError:
+            return JsonResponse({"success": False, "error": "Invalid quiz."}, status=400)
 
-    return JsonResponse({"success": False, "error": "Invalid request."})
+        quiz = CustomQuiz.objects.filter(id=quiz_id_int, owner=request.user).first()
+        if not quiz:
+            return JsonResponse({"success": False, "error": "Quiz not found."}, status=404)
+
+        quiz.words.add(word)
+
+    return JsonResponse({
+        "success": True,
+        "word_id": word.id,
+        "language": word.language,
+        "language_display": word.get_language_display(),
+    })
 
 
 # ============================================================

@@ -1,53 +1,56 @@
 {# templates/quiz/partials/manage/_quiz_words_table.html #}
 
-{# ========== Filter + Search + Add + Bulk delete ========== #}
 <div class="mb-3">
 
-    {# ===== Row 1: Search + Language ===== #}
-    <div class="row g-2 g-lg-3 align-items-lg-center mb-2">
-
-        {# Search bar #}
-        <div class="col-12 col-lg-9">
-            <div class="input-group">
-                <span class="input-group-text">🔍</span>
-                <input type="text" id="quiz-word-search" class="form-control" placeholder="Search within this quiz (original or translation)...">
-            </div>
-        </div>
-
-        {# Language dropdown #}
-        <div class="col-12 col-lg-3">
-            <select id="quiz-language-filter" class="form-select">
-                <option value="">All languages</option>
-                {% for code, name in language_choices %}
-                <option value="{{ code }}">{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
+  <div class="row g-2 g-lg-3 align-items-lg-center mb-2">
+    <div class="col-12 col-lg-9">
+      <div class="input-group">
+        <span class="input-group-text">🔍</span>
+        <input type="text" id="quiz-word-search" class="form-control"
+               placeholder="Search within this quiz (original or translation)...">
+      </div>
     </div>
 
-    {# ===== Row 2: Action buttons ===== #}
-    <div class="d-flex flex-column flex-sm-row justify-content-start gap-2">
-
-        <button
-          id="open-add-words-modal-btn"
-          class="btn btn-ws-base btn-ws-success flex-fill flex-sm-grow-0 text-nowrap"
-          data-quiz-id="{{ quiz.id }}"
-          data-candidate-url="{% url 'quiz:quiz_candidate_words' quiz.id %}"
-          data-add-url="{% url 'quiz:quiz_add_words' quiz.id %}"
-        >
-          <i class="bi bi-plus-square me-1"></i>
-          Add Words
-        </button>
-
-
-        <button id="bulk-delete-btn" class="btn btn-ws-base btn-ws-danger flex-fill flex-sm-grow-0 text-nowrap d-none" disabled>
-            <i class="bi bi-trash3 me-1"></i>
-            Delete selected
-        </button>
-
+    <div class="col-12 col-lg-3">
+      <select id="quiz-language-filter" class="form-select">
+        <option value="">All languages</option>
+        {% for code, name in language_choices %}
+          <option value="{{ code }}">{{ name }}</option>
+        {% endfor %}
+      </select>
     </div>
+  </div>
+
+  <div class="d-flex flex-column flex-sm-row justify-content-start gap-2">
+    <button
+      id="open-add-words-modal-btn"
+      class="btn btn-ws-base btn-ws-success flex-fill flex-sm-grow-0 text-nowrap"
+      data-quiz-id="{{ quiz.id }}"
+      data-candidate-url="{% url 'quiz:quiz_candidate_words' quiz.id %}"
+      data-add-url="{% url 'quiz:quiz_add_words' quiz.id %}"
+    >
+      <i class="bi bi-plus-square me-1"></i>
+      Add Words
+    </button>
+
+    {# ✅ NEW: Quiz-aware import entry point #}
+    <a
+      href="{% url 'quiz:upload_words' %}?quiz_id={{ quiz.id }}"
+      class="btn btn-ws-base btn-ws-primary flex-fill flex-sm-grow-0 text-nowrap"
+    >
+      <i class="bi bi-upload me-1"></i>
+      Import Words
+    </a>
+
+    <button id="bulk-delete-btn"
+            class="btn btn-ws-base btn-ws-danger flex-fill flex-sm-grow-0 text-nowrap d-none"
+            disabled>
+      <i class="bi bi-trash3 me-1"></i>
+      Delete selected
+    </button>
+  </div>
 </div>
+
 
 
 {# ========== Dynamic word count for quiz words ========== #}
