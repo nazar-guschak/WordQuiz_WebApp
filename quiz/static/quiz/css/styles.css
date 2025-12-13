@@ -1,25 +1,93 @@
+/* =========================================================
+   Word Stream – static/quiz/css/styles.css (full rewrite v2)
+   Goals:
+   - No Bootstrap dependency required
+   - Consistent tokens + focus rings + reduced motion
+   - Unknown rows get stronger yellow on hover
+   - Mobile: NO horizontal scrolling; fixed table; ellipsis truncation
+========================================================= */
+
 /* ==========================
-   Page layout
-   ========================== */
-body {
-  background-color: #f5f7fb;
+   TOKENS / THEME
+========================== */
+:root{
+  --ws-bg: #f5f7fb;
+  --ws-surface: #ffffff;
+  --ws-text: #0f172a;
+  --ws-muted: #6b7280;
+
+  --ws-border: #e5e7eb;
+
+  --ws-primary-1: #3180ed;
+  --ws-primary-2: #6ec3ff;
+
+  --ws-soft-bg: #e7f1ff;
+  --ws-soft-bg-hover: #d5e5ff;
+  --ws-soft-text: #215298;
+  --ws-soft-text-hover: #163a6b;
+
+  --ws-danger-1: #f97373;
+  --ws-danger-2: #f43f5e;
+  --ws-danger-1-hover: #dc2626;
+  --ws-danger-2-hover: #e11d48;
+
+  --ws-success-1: #4ade80;
+  --ws-success-2: #22c55e;
+  --ws-success-1-hover: #22c55e;
+  --ws-success-2-hover: #16a34a;
+
+  --ws-radius-sm: 12px;
+  --ws-radius-md: 16px;
+  --ws-radius-lg: 18px;
+  --ws-radius-pill: 999px;
+
+  --ws-shadow-sm: 0 4px 10px rgba(15, 35, 52, 0.10);
+  --ws-shadow-md: 0 6px 16px rgba(15, 35, 52, 0.08);
+  --ws-shadow-lg: 0 10px 25px rgba(15, 35, 52, 0.08);
+
+  --ws-focus-ring: 0 0 0 3px rgba(49, 128, 237, 0.35);
+
+  --ws-t-fast: 120ms ease;
+  --ws-t: 250ms ease;
+  --ws-t-slow: 700ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================
+   BASE / PAGE LAYOUT
+========================== */
+body{
+  background-color: var(--ws-bg);
+  color: var(--ws-text);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.demo-wrapper {
+/* Optional wrapper: use <div class="ws-page">...</div> if you want consistent padding */
+.ws-page{
+  padding-inline: clamp(12px, 3vw, 24px);
+}
+
+.demo-wrapper{
   min-height: 100vh;
   padding: 2rem 0;
 }
 
-.demo-card {
-  background-color: #ffffff;
-  border-radius: 16px;
+.demo-card{
+  background-color: var(--ws-surface);
+  border-radius: var(--ws-radius-md);
   padding: 1.5rem 1.75rem;
-  box-shadow: 0 10px 25px rgba(15, 35, 52, 0.08);
+  box-shadow: var(--ws-shadow-lg);
   margin-bottom: 1.75rem;
 }
 
-.badge-label {
+.badge-label{
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -27,324 +95,356 @@ body {
   font-weight: 600;
 }
 
-.word-card {
+.word-card{
   border-radius: 14px;
   box-shadow: 0 6px 16px rgba(15, 35, 52, 0.12);
   border: none;
 }
 
-.word-card h3 {
+.word-card h3{
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 
 /* Helper: button rows */
-.btn-row {
+.btn-row{
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
 /* ==========================
-   Button base
-   ========================== */
-.btn-ws-base {
-  border-radius: 999px;
+   LINKS / LOGO / TEXT HELPERS
+========================== */
+.ws-link-strong{
+  font-weight: 700;
+  color: var(--ws-primary-1);
+  text-decoration: none;
+}
+
+.ws-link-strong:hover{
+  color: #2766c1;
+  text-decoration: underline;
+}
+
+.ws-logo{
+  height: 48px;
+  display: inline-block;
+  vertical-align: middle;
+  transform: translateY(-2px);
+}
+
+.profile-details dd{
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* ==========================
+   BUTTON SYSTEM (NO BOOTSTRAP)
+========================== */
+
+/* Normalize clickable feel */
+.btn-ws-base,
+.btn-ws-icon,
+.choice-btn{
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  line-height: 1.2;
+}
+
+/* Base */
+.btn-ws-base{
+  border-radius: var(--ws-radius-pill);
   font-weight: 600;
   letter-spacing: 0.03em;
-  padding-inline: 1.15rem;
-  padding-block: 0.45rem;
-  border-width: 0;
-  box-shadow: 0 4px 10px rgba(15, 35, 52, 0.1);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease,
-    box-shadow 0.3s ease,
-    transform 0.12s ease;
+  padding: 0.45rem 1.15rem;
+  border: 0;
+  box-shadow: var(--ws-shadow-sm);
+  transition: transform var(--ws-t-fast), box-shadow var(--ws-t), filter var(--ws-t), background-color var(--ws-t), color var(--ws-t);
+  will-change: transform;
 }
 
-.btn-ws-base:focus-visible {
-  outline: 3px solid rgba(49, 128, 237, 0.4);
-  outline-offset: 2px;
+.btn-ws-base:focus-visible{
+  outline: none;
+  box-shadow: var(--ws-shadow-sm), var(--ws-focus-ring);
 }
 
-.btn-ws-base:active {
+.btn-ws-base:active{
   transform: translateY(1px);
   box-shadow: 0 2px 6px rgba(15, 35, 52, 0.12);
 }
 
-/* ==========================
-   Primary gradient button
-   ========================== */
-.btn-ws-primary {
-  background-image: linear-gradient(135deg, #3180ed, #6ec3ff);
+.btn-ws-base:disabled{
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: saturate(70%);
+  transform: none !important;
+}
+
+/* Primary gradient */
+.btn-ws-primary{
+  background-image: linear-gradient(135deg, var(--ws-primary-1), var(--ws-primary-2));
   color: #ffffff;
 }
 
-.btn-ws-primary:hover {
-  background-image: linear-gradient(135deg, #2766c1, #5fb6f5);
-  color: #ffffff;
+.btn-ws-primary:hover{
+  filter: brightness(0.95);
   box-shadow: 0 6px 14px rgba(34, 87, 170, 0.35);
   transform: translateY(-1px);
 }
 
-/* ==========================
-   Soft pastel button
-   ========================== */
-.btn-ws-soft {
-  background-color: #e7f1ff;
-  color: #215298;
+/* Soft pastel */
+.btn-ws-soft{
+  background-color: var(--ws-soft-bg);
+  color: var(--ws-soft-text);
   box-shadow: 0 2px 8px rgba(23, 60, 117, 0.08);
 }
 
-.btn-ws-soft:hover {
-  background-color: #d5e5ff;
-  color: #163a6b;
+.btn-ws-soft:hover{
+  background-color: var(--ws-soft-bg-hover);
+  color: var(--ws-soft-text-hover);
   box-shadow: 0 4px 12px rgba(23, 60, 117, 0.16);
   transform: translateY(-1px);
 }
 
-/* ==========================
-   Outline button
-   ========================== */
-.btn-ws-outline {
+/* Outline */
+.btn-ws-outline{
   background-color: transparent;
-  color: #215298;
+  color: var(--ws-soft-text);
   border: 1px solid rgba(33, 82, 152, 0.35);
   box-shadow: none;
 }
 
-.btn-ws-outline:hover {
+.btn-ws-outline:hover{
   background-color: rgba(33, 82, 152, 0.06);
   border-color: rgba(33, 82, 152, 0.6);
   box-shadow: 0 3px 8px rgba(15, 35, 52, 0.18);
   transform: translateY(-1px);
 }
 
-/* ==========================
-   Ghost / minimal
-   ========================== */
-.btn-ws-ghost {
+/* Ghost */
+.btn-ws-ghost{
   background-color: transparent;
   color: #64748b;
   box-shadow: none;
   padding-inline: 0.75rem;
 }
 
-.btn-ws-ghost:hover {
+.btn-ws-ghost:hover{
   background-color: rgba(148, 163, 184, 0.12);
   color: #475569;
 }
 
-/* ==========================
-   Danger / Delete
-   ========================== */
-.btn-ws-danger {
-  background: linear-gradient(135deg, #f97373, #f43f5e);
+/* Danger */
+.btn-ws-danger{
+  background: linear-gradient(135deg, var(--ws-danger-1), var(--ws-danger-2));
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(248, 113, 113, 0.4);
 }
 
-.btn-ws-danger:hover {
-  background: linear-gradient(135deg, #dc2626, #e11d48);
+.btn-ws-danger:hover{
+  background: linear-gradient(135deg, var(--ws-danger-1-hover), var(--ws-danger-2-hover));
   box-shadow: 0 6px 14px rgba(185, 28, 28, 0.5);
+  transform: translateY(-1px);
 }
 
-/* ==========================
-   Success / Confirm
-   ========================== */
-.btn-ws-success {
-  background: linear-gradient(135deg, #4ade80, #22c55e);
+/* Success */
+.btn-ws-success{
+  background: linear-gradient(135deg, var(--ws-success-1), var(--ws-success-2));
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
 }
 
-.btn-ws-success:hover {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+.btn-ws-success:hover{
+  background: linear-gradient(135deg, var(--ws-success-1-hover), var(--ws-success-2-hover));
   box-shadow: 0 6px 16px rgba(22, 163, 74, 0.45);
   transform: translateY(-1px);
 }
 
-/* ==========================
-   Glass button
-   ========================== */
-.btn-ws-glass {
+/* Glass */
+.btn-ws-glass{
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  color: #0f172a;
+  border-radius: var(--ws-radius-md);
+  color: var(--ws-text);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
-  backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
 }
 
-.btn-ws-glass:hover {
+.btn-ws-glass:hover{
   background: rgba(255, 255, 255, 0.35);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+  transform: translateY(-1px);
 }
 
-/* ==========================
-   Icon button (circle)
-   ========================== */
-.btn-ws-icon {
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  .btn-ws-glass{ background: rgba(255,255,255,0.92); }
+}
+
+/* Icon button (circle) */
+.btn-ws-icon{
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   padding: 0;
+  border: 0;
   background-color: #e5efff;
-  color: #215298;
+  color: var(--ws-soft-text);
   box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12);
+  transition: transform var(--ws-t-fast), box-shadow var(--ws-t), background-color var(--ws-t), color var(--ws-t);
+  flex: 0 0 auto;
 }
 
-.btn-ws-icon:hover {
+.btn-ws-icon:hover{
   background-color: #d6e5ff;
-  color: #163a6b;
+  color: var(--ws-soft-text-hover);
   transform: translateY(-1px);
   box-shadow: 0 5px 14px rgba(15, 35, 52, 0.2);
 }
 
-.btn-ws-icon i {
+.btn-ws-icon:focus-visible{
+  outline: none;
+  box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12), var(--ws-focus-ring);
+}
+
+.btn-ws-icon i{
   font-size: 1.1rem;
 }
 
-.btn-ws-icon-label i {
+.btn-ws-icon-label i{
   margin-right: 0.35rem;
   font-size: 1.1rem;
 }
 
 /* ==========================
-   Choice buttons (Quiz)
-   ========================== */
-
-.choice-btn {
+   QUIZ: CHOICE BUTTONS
+========================== */
+.choice-btn{
   width: 100%;
   padding-block: 0.75rem;
   font-size: 1.05rem;
-  border-radius: 999px;
+  border-radius: var(--ws-radius-pill);
   font-weight: 600;
   letter-spacing: 0.02em;
+  border: 0;
+  transition: transform var(--ws-t-fast), box-shadow var(--ws-t), background-color var(--ws-t), color var(--ws-t), filter var(--ws-t);
 }
 
-/* Default soft pastel look */
-.choice-btn:not(.btn-success):not(.btn-danger) {
-  background-color: #e7f1ff;
-  color: #215298;
-  border: none;
+/* Default soft look */
+.choice-btn:not(.btn-success):not(.btn-danger){
+  background-color: var(--ws-soft-bg);
+  color: var(--ws-soft-text);
   box-shadow: 0 2px 8px rgba(23, 60, 117, 0.08);
 }
 
-/* Hover */
-.choice-btn:not(.btn-success):not(.btn-danger):hover {
-  background-color: #d5e5ff;
-  color: #163a6b;
+.choice-btn:not(.btn-success):not(.btn-danger):hover{
+  background-color: var(--ws-soft-bg-hover);
+  color: var(--ws-soft-text-hover);
   box-shadow: 0 4px 12px rgba(23, 60, 117, 0.16);
   transform: translateY(-1px);
 }
 
-/* Smooth transitions specifically for match items */
-.match-item {
+/* If your JS still uses these state classes */
+.choice-btn.btn-success{
+  background: linear-gradient(135deg, var(--ws-success-1), var(--ws-success-2));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+}
+.choice-btn.btn-danger{
+  background: linear-gradient(135deg, var(--ws-danger-1), var(--ws-danger-2));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(185, 28, 28, 0.35);
+}
+
+#next-btn:disabled{
+  opacity: 0.4;
+  filter: saturate(60%);
+  cursor: not-allowed;
+}
+
+/* ==========================
+   QUIZ: MATCHING UI STATES
+========================== */
+.match-item{
+  /* 🔒 Keep pill inside its column */
+  width: 100%;
+  max-width: 100%;
+
+  /* ✅ Allow long words to wrap instead of overflowing */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  /* existing transitions */
   transition:
     background-color 0.35s ease,
     color 0.35s ease,
     box-shadow 0.35s ease;
 }
 
-/* Temporary "wrong" flash state for matches */
-.match-wrong {
-  background-color: #fee2e2 !important;   /* soft red */
+.match-wrong{
+  background-color: #fee2e2 !important;
   color: #b91c1c !important;
   box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.7);
 }
 
-.match-selected {
+.match-selected{
   background: linear-gradient(135deg, #93c5fd, #60a5fa) !important;
-  color: #0f172a !important;  /* dark slate text */
+  color: var(--ws-text) !important;
   box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.55),
               0 4px 12px rgba(59,130,246,0.25);
-  transition: background 0.25s ease,
-              box-shadow 0.25s ease,
-              color 0.25s ease;
+  transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
 }
 
-#next-btn:disabled {
-  opacity: 0.4;
-  filter: saturate(60%);
-  cursor: not-allowed;
-}
-
-.ws-link-strong {
-  font-weight: 700;
-  color: #3180ed;
-  text-decoration: none;
-}
-
-.ws-link-strong:hover {
-  color: #2766c1;
-  text-decoration: underline;
-}
-
-.ws-logo {
-  height: 48px; /* or your preferred size */
-  display: inline-block;
-  vertical-align: middle;
-  transform: translateY(-2px); /* adjust -1px to -4px until visually perfect */
-}
-
-.profile-details dd {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-}
-
-.import-sticky-bar {
+/* ==========================
+   IMPORT: STICKY BAR
+========================== */
+.import-sticky-bar{
   position: sticky;
   bottom: 14px;
   z-index: 50;
-
-  display: flex;                 /* ✅ center container itself */
+  display: flex;
   justify-content: center;
-  pointer-events: none;
 }
 
-.import-sticky-inner {
-  width: fit-content;            /* ✅ hugs button width */
+.import-sticky-inner{
+  width: fit-content;
   background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(8px);
-  border-radius: 18px;
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.12),
-    0 4px 10px rgba(0, 0, 0, 0.08);
+  border-radius: var(--ws-radius-lg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12),
+              0 4px 10px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0,0,0,0.06);
   padding: 0.55rem 0.65rem;
 
   display: flex;
-  justify-content: center;       /* ✅ center buttons inside */
-  gap: 0.35rem;                  /* ✅ tight grouping */
+  justify-content: center;
+  gap: 0.35rem;
   align-items: center;
 
+  backdrop-filter: blur(8px);
   pointer-events: auto;
 }
 
-@media (max-width: 576px) {
-  .import-sticky-inner {
-    border-radius: 16px;
-    padding: 0.6rem 0.6rem;
-  }
-
-  .import-sticky-inner .btn {
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
-  }
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .import-sticky-inner{ background: rgba(255,255,255,0.98); }
 }
 
-.ws-flags-strip {
+/* ==========================
+   HERO / FLAGS / GRADIENT TEXT
+========================== */
+.ws-flags-strip{
   max-width: 100%;
   overflow-x: hidden;
 }
 
-.hero-gradient-text span {
+.hero-gradient-text span{
   background: linear-gradient(90deg, #5a8dee, #7fd6c2);
   -webkit-background-clip: text;
   background-clip: text;
@@ -352,83 +452,79 @@ body {
   text-fill-color: transparent;
 }
 
-/* =========================
+/* ==========================
    SCROLL ANIMATIONS
-========================= */
-
-.ws-animate {
+========================== */
+.ws-animate{
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
+  transition: opacity var(--ws-t-slow), transform var(--ws-t-slow);
 }
 
-.ws-animate.visible {
+.ws-animate.visible{
   opacity: 1;
   transform: translateY(0);
 }
 
-
-/* ============================
+/* ==========================
    WORDS TABLE – MINIMAL STYLE
-============================ */
-
-/* Wrapper */
-.ws-table-wrapper {
+========================== */
+.ws-table-wrapper{
   margin: 0 auto;
   max-width: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #ffffff;
+  border: 1px solid var(--ws-border);
+  border-radius: var(--ws-radius-sm);
+  background: var(--ws-surface);
   overflow: hidden;
-  box-shadow: 0 6px 16px rgba(15, 35, 52, 0.08);
+  box-shadow: var(--ws-shadow-md);
 }
 
-.ws-table-scroll {
-  overflow-x: auto;
+.ws-table-scroll{
+  overflow-x: auto; /* desktop/tablet can scroll if needed */
   width: 100%;
 }
 
-table.ws-table {
+/* Table */
+table.ws-table{
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
 
 /* Header */
-.ws-table thead {
+.ws-table thead{
   background: linear-gradient(to right, #eff6ff, #ffffff);
 }
 
-.ws-table thead th {
+.ws-table thead th{
   padding: 0.65rem 0.8rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--ws-border);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--ws-muted);
   white-space: nowrap;
 }
 
-/* ✅ Language header alignment FIX */
-.ws-lang-header {
+.ws-lang-header{
   text-align: center;
   vertical-align: middle;
 }
 
-/* Rows */
-.ws-table tbody td {
+/* Cells / Rows */
+.ws-table tbody td{
   padding: 0.65rem 0.8rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--ws-border);
   vertical-align: middle;
 }
 
-.ws-table tbody tr:hover {
+.ws-table tbody tr:hover{
   background-color: #f9fafb;
 }
 
 /* Columns */
-.ws-col-original {
+.ws-col-original{
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -437,30 +533,31 @@ table.ws-table {
   color: #111827;
 }
 
-.ws-col-translation {
+.ws-col-translation{
   white-space: normal;
 }
 
+/* Checkbox */
 .ws-check-header,
-.ws-check-cell {
+.ws-check-cell{
   width: 40px;
   text-align: center;
 }
 
-.ws-check-input {
+.ws-check-input{
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #3180ed;
+  accent-color: var(--ws-primary-1);
 }
 
-/* ✅ Language Badge Alignment FIX */
-.ws-lang-cell {
+/* Language badge */
+.ws-lang-cell{
   text-align: center;
   vertical-align: middle;
 }
 
-.ws-lang-badge {
+.ws-lang-badge{
   display: inline-block;
   padding: 0.2rem 0.55rem;
   border-radius: 8px;
@@ -471,116 +568,123 @@ table.ws-table {
 }
 
 /* Actions */
-.ws-actions-cell {
+.ws-actions-cell{
   white-space: nowrap;
   width: 1%;
   text-align: right;
   vertical-align: middle;
 }
 
-/* ✅ FORCE ICON BUTTONS TO STAY HORIZONTAL (FIXES STACKING) */
-.ws-actions-cell .btn-row {
+.ws-actions-header{
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Force icon buttons to stay horizontal */
+.ws-actions-cell .btn-row{
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.4rem;
 }
 
-/* ✅ REMOVE BLACK OUTLINE / BORDER FROM ICON BUTTONS */
-.ws-actions-cell .btn-ws-icon {
-  border: none;
+/* Keep accessible focus for icon buttons */
+.ws-actions-cell .btn-ws-icon{
+  border: 0;
   outline: none;
 }
 
-.ws-actions-cell .btn-ws-icon:focus,
-.ws-actions-cell .btn-ws-icon:active {
+.ws-actions-cell .btn-ws-icon:focus-visible{
   outline: none;
-  box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12);
+  box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12), var(--ws-focus-ring);
 }
 
-/* Mobile Optimizations */
-@media (max-width: 576px) {
+/* ==========================
+   UNKNOWN LANGUAGE HIGHLIGHT
+========================== */
+.ws-row-unknown{
+  background-color: rgba(255, 193, 7, 0.08);
+}
 
-  table.ws-table {
+.ws-lang-badge-unknown{
+  background-color: #ffc107;
+  color: #212529;
+}
+
+/* ✅ Unknown rows: stronger yellow on hover */
+.ws-table tbody tr.ws-row-unknown:hover{
+  background-color: rgba(255, 193, 7, 0.18);
+}
+
+/* ==========================
+   MOBILE (<= 576px)
+   - NO horizontal scrolling
+   - fixed table layout
+   - ellipsis truncation for long words
+========================== */
+@media (max-width: 576px){
+
+  /* Sticky bar */
+  .import-sticky-inner{
+    border-radius: var(--ws-radius-md);
+    padding: 0.6rem 0.6rem;
+  }
+
+  .import-sticky-inner .btn,
+  .import-sticky-inner button{
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  /* Table sizing */
+  table.ws-table{
     font-size: 0.86rem;
+    table-layout: fixed;  /* ✅ critical for ellipsis */
+    width: 100%;
   }
 
   .ws-table thead th,
-  .ws-table tbody td {
+  .ws-table tbody td{
     padding: 0.45rem 0.5rem;
   }
 
-  /* Hide language */
+  /* Hide language column on small screens */
   .ws-lang-header,
-  .ws-lang-cell {
+  .ws-lang-cell{
     display: none;
   }
 
-  /* Strong truncation */
-  .ws-col-original {
-    max-width: 90px;
-  }
-
-  /* No horizontal scrolling */
-  .ws-table-scroll {
+  /* ✅ prevent horizontal scroll on mobile */
+  .ws-table-scroll{
     overflow-x: hidden;
   }
 
-  /* ✅ Tighter icons on mobile */
-  .ws-actions-cell .btn-row {
-    gap: 0.3rem;
+  /* ✅ ellipsis on mobile for long content */
+  .ws-table tbody td{
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .ws-actions-cell .btn-ws-icon {
-    width: 2.2rem;
-    height: 2.2rem;
-  }
-}
-
-/* Center the Actions header so it aligns with the icons below */
-.ws-actions-header {
-  text-align: center;
-  vertical-align: middle;
-}
-
-/* ============================
-   MOBILE: EDGE-TO-EDGE TABLE
-============================ */
-@media (max-width: 576px) {
-
-  /* ✅ Kill global body padding on mobile */
-  body {
-    padding: 3%;
+  .ws-col-original,
+  .ws-col-translation{
+    white-space: nowrap;
   }
 
-  /* ✅ Remove outer margins + rounding so table hugs screen */
-  .ws-table-wrapper {
+  /* column sizing */
+  .ws-check-header,
+  .ws-check-cell{ width: 34px; }
+
+  .ws-actions-cell{ width: 92px; } /* tweak 80–110px as needed */
+
+  /* tighter icon buttons */
+  .ws-actions-cell .btn-row{ gap: 0.3rem; }
+  .ws-actions-cell .btn-ws-icon{ width: 2.2rem; height: 2.2rem; }
+
+  /* Edge-to-edge table option */
+  .ws-table-wrapper{
     margin: 0;
     border-radius: 0;
     border-left: none;
     border-right: none;
   }
-
-  /* ✅ Remove padding from any Bootstrap containers wrapping it */
-  .container,
-  .container-fluid,
-  .tab-pane {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-
-  /* ✅ Slight internal table padding remains for touch comfort */
-  .ws-table thead th,
-  .ws-table tbody td {
-    padding: 0.45rem 0.5rem;
-  }
-}
-
-.ws-row-unknown {
-  background-color: rgba(255, 193, 7, 0.08); /* subtle warning tone */
-}
-
-.ws-lang-badge-unknown {
-  background-color: #ffc107;
-  color: #212529;
 }
