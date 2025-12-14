@@ -4,8 +4,8 @@ let matchLeftToRight = {};
 let matchRightToLeft = {};
 let matchLeftElements = {};
 let matchRightElements = {};
-let matchSelectedId = null;   // ✅ now holds either left OR right id
-let matchSelectedSide = null; // ✅ "left" or "right"
+let matchSelectedId = null;   // holds either left OR right id
+let matchSelectedSide = null; // "left" or "right"
 let firstAttemptCorrectByWord = {};
 let currentQuestionWordIds = [];
 
@@ -39,34 +39,48 @@ export function buildMatchingUI(data, container, nextBtn) {
   resetMatchState();
   currentQuestionWordIds = data.question_word_ids || [];
 
-  // ✅ LEFT column
-  data.left_items.forEach((item) => {
+  // ✅ Create LEFT column buttons
+  const leftButtons = [];
+  (data.left_items || []).forEach((item) => {
     const btn = document.createElement("button");
     btn.type = "button";
+
+    // ✅ IMPORTANT: removed "text-start" so wrapped text can be centered
     btn.className =
-      "btn btn-ws-base btn-ws-soft choice-btn w-100 text-start match-item match-left";
+      "btn btn-ws-base btn-ws-soft choice-btn w-100 match-item match-left";
+
     btn.dataset.wordId = item.id;
     btn.textContent = item.text;
+    btn.setAttribute("aria-pressed", "false");
+
     leftCol.appendChild(btn);
     matchLeftElements[item.id] = btn;
+    leftButtons.push(btn);
   });
 
-  // ✅ RIGHT column
-  data.right_items.forEach((item) => {
+  // ✅ Create RIGHT column buttons
+  const rightButtons = [];
+  (data.right_items || []).forEach((item) => {
     const btn = document.createElement("button");
     btn.type = "button";
+
+    // ✅ IMPORTANT: removed "text-start" so wrapped text can be centered
     btn.className =
-      "btn btn-ws-base btn-ws-soft choice-btn w-100 text-start match-item match-right";
+      "btn btn-ws-base btn-ws-soft choice-btn w-100 match-item match-right";
+
     btn.dataset.wordId = item.id;
     btn.textContent = item.text;
+    btn.setAttribute("aria-pressed", "false");
+
     rightCol.appendChild(btn);
     matchRightElements[item.id] = btn;
+    rightButtons.push(btn);
   });
 
   nextBtn.textContent = "Next";
   nextBtn.disabled = true;
 
-  attachMatchHandlers(nextBtn);
+  attachMatchHandlers(nextBtn, leftButtons, rightButtons);
 }
 
 // =====================================================
@@ -83,7 +97,7 @@ function resetMatchState() {
 }
 
 // =====================================================
-// ✅ VISUAL HELPERS (UNCHANGED)
+// ✅ VISUAL HELPERS
 // =====================================================
 function clearPairClasses(el) {
   if (!el) return;
@@ -98,6 +112,7 @@ function clearPairClasses(el) {
     "match-wrong",
     "btn-ws-success"
   );
+  el.setAttribute("aria-pressed", "false");
 }
 
 function markCorrectPair(leftId, rightId) {
@@ -148,19 +163,26 @@ function finalizeMatchQuestionIfComplete(nextBtn) {
 // =====================================================
 // ✅ BIDIRECTIONAL MATCH HANDLERS
 // =====================================================
-function attachMatchHandlers(nextBtn) {
-  const leftButtons = document.querySelectorAll(".match-left");
-  const rightButtons = document.querySelectorAll(".match-right");
-
+function attachMatchHandlers(nextBtn, leftButtons, rightButtons) {
   function clearSelection() {
     if (matchSelectedSide === "left" && matchLeftElements[matchSelectedId]) {
       matchLeftElements[matchSelectedId].classList.remove("match-selected");
+      matchLeftElements[matchSelectedId].setAttribute("aria-pressed", "false");
     }
     if (matchSelectedSide === "right" && matchRightElements[matchSelectedId]) {
       matchRightElements[matchSelectedId].classList.remove("match-selected");
+      matchRightElements[matchSelectedId].setAttribute("aria-pressed", "false");
     }
     matchSelectedId = null;
     matchSelectedSide = null;
+  }
+
+  function selectButton(btn, side, id) {
+    clearSelection();
+    matchSelectedId = id;
+    matchSelectedSide = side;
+    btn.classList.add("match-selected");
+    btn.setAttribute("aria-pressed", "true");
   }
 
   function handlePairAttempt(leftId, rightId) {
@@ -193,16 +215,16 @@ function attachMatchHandlers(nextBtn) {
     btn.addEventListener("click", () => {
       const leftId = parseInt(btn.dataset.wordId, 10);
 
+      // Ignore already matched
+      if (matchLeftToRight[leftId]) return;
+
       // If RIGHT was selected first → pair
       if (matchSelectedSide === "right") {
         handlePairAttempt(leftId, matchSelectedId);
         return;
       }
 
-      clearSelection();
-      matchSelectedId = leftId;
-      matchSelectedSide = "left";
-      btn.classList.add("match-selected");
+      selectButton(btn, "left", leftId);
     });
   });
 
@@ -211,16 +233,16 @@ function attachMatchHandlers(nextBtn) {
     btn.addEventListener("click", () => {
       const rightId = parseInt(btn.dataset.wordId, 10);
 
+      // Ignore already matched
+      if (matchRightToLeft[rightId]) return;
+
       // If LEFT was selected first → pair
       if (matchSelectedSide === "left") {
         handlePairAttempt(matchSelectedId, rightId);
         return;
       }
 
-      clearSelection();
-      matchSelectedId = rightId;
-      matchSelectedSide = "right";
-      btn.classList.add("match-selected");
+      selectButton(btn, "right", rightId);
     });
   });
 }
@@ -229,12 +251,10 @@ function attachMatchHandlers(nextBtn) {
 // ✅ SUBMIT TO BACKEND
 // =====================================================
 async function submitMatchAnswer() {
-  const pairs = Object.entries(matchLeftToRight).map(
-    ([leftId, rightId]) => ({
-      left_id: parseInt(leftId, 10),
-      right_id: parseInt(rightId, 10),
-    })
-  );
+  const pairs = Object.entries(matchLeftToRight).map(([leftId, rightId]) => ({
+    left_id: parseInt(leftId, 10),
+    right_id: parseInt(rightId, 10),
+  }));
 
   const firstAttempts = Object.entries(firstAttemptCorrectByWord).map(
     ([wordId, firstCorrect]) => ({

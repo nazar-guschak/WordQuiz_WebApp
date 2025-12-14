@@ -1,10 +1,19 @@
 /* =========================================================
-   Word Stream – static/quiz/css/styles.css (full rewrite v2)
-   Goals:
-   - No Bootstrap dependency required
-   - Consistent tokens + focus rings + reduced motion
-   - Unknown rows get stronger yellow on hover
-   - Mobile: NO horizontal scrolling; fixed table; ellipsis truncation
+   Word Stream – static/quiz/css/styles.css (FULL REWRITE)
+   Includes latest amendments:
+   - Choice quiz uses overlay fade-in ONLY for buttons marked .ws-choice
+     (JS adds .ws-choice in choice.js). This prevents match quiz regressions.
+   - Choice quiz:
+       - Result color fades in via overlay (opacity transition)
+       - Text never "fades out" (overlay behind text, no opacity on button)
+       - Wrong-answer shake works reliably
+       - Correct/wrong does not gray out if disabled
+   - Match quiz:
+       - Keeps classic background color changes via .match-selected/.match-wrong
+       - Centered, wrapped text (.match-item)
+   - Words table:
+       - Unknown language highlight + stronger hover
+       - Mobile fixed layout + ellipsis (no horizontal scroll)
 ========================================================= */
 
 /* ==========================
@@ -15,7 +24,6 @@
   --ws-surface: #ffffff;
   --ws-text: #0f172a;
   --ws-muted: #6b7280;
-
   --ws-border: #e5e7eb;
 
   --ws-primary-1: #3180ed;
@@ -49,14 +57,16 @@
 
   --ws-t-fast: 120ms ease;
   --ws-t: 250ms ease;
-  --ws-t-slow: 700ms ease;
+
+  /* quiz timings */
+  --ws-reveal-dur: 600ms;      /* overlay fade length */
+  --ws-reveal-ease: ease;      /* overlay easing */
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  .ws-animate, .ws-animate *{
     animation: none !important;
     transition: none !important;
-    scroll-behavior: auto !important;
   }
 }
 
@@ -69,15 +79,9 @@ body{
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* Optional wrapper: use <div class="ws-page">...</div> if you want consistent padding */
-.ws-page{
-  padding-inline: clamp(12px, 3vw, 24px);
-}
+.ws-page{ padding-inline: clamp(12px, 3vw, 24px); }
 
-.demo-wrapper{
-  min-height: 100vh;
-  padding: 2rem 0;
-}
+.demo-wrapper{ min-height: 100vh; padding: 2rem 0; }
 
 .demo-card{
   background-color: var(--ws-surface);
@@ -85,14 +89,6 @@ body{
   padding: 1.5rem 1.75rem;
   box-shadow: var(--ws-shadow-lg);
   margin-bottom: 1.75rem;
-}
-
-.badge-label{
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6c757d;
-  font-weight: 600;
 }
 
 .word-card{
@@ -106,7 +102,6 @@ body{
   letter-spacing: 0.03em;
 }
 
-/* Helper: button rows */
 .btn-row{
   display: flex;
   flex-wrap: wrap;
@@ -114,19 +109,17 @@ body{
 }
 
 /* ==========================
-   LINKS / LOGO / TEXT HELPERS
+   LINKS / LOGO
 ========================== */
 .ws-link-strong{
   font-weight: 700;
   color: var(--ws-primary-1);
   text-decoration: none;
 }
-
 .ws-link-strong:hover{
   color: #2766c1;
   text-decoration: underline;
 }
-
 .ws-logo{
   height: 48px;
   display: inline-block;
@@ -134,20 +127,13 @@ body{
   transform: translateY(-2px);
 }
 
-.profile-details dd{
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-}
-
 /* ==========================
-   BUTTON SYSTEM (NO BOOTSTRAP)
+   BUTTON SYSTEM
 ========================== */
-
-/* Normalize clickable feel */
 .btn-ws-base,
 .btn-ws-icon,
-.choice-btn{
+.choice-btn,
+.match-item{
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   cursor: pointer;
@@ -167,20 +153,22 @@ body{
   padding: 0.45rem 1.15rem;
   border: 0;
   box-shadow: var(--ws-shadow-sm);
-  transition: transform var(--ws-t-fast), box-shadow var(--ws-t), filter var(--ws-t), background-color var(--ws-t), color var(--ws-t);
+  transition:
+    transform var(--ws-t-fast),
+    box-shadow var(--ws-t),
+    filter var(--ws-t),
+    background-color var(--ws-t),
+    color var(--ws-t);
   will-change: transform;
 }
-
 .btn-ws-base:focus-visible{
   outline: none;
   box-shadow: var(--ws-shadow-sm), var(--ws-focus-ring);
 }
-
 .btn-ws-base:active{
   transform: translateY(1px);
   box-shadow: 0 2px 6px rgba(15, 35, 52, 0.12);
 }
-
 .btn-ws-base:disabled{
   cursor: not-allowed;
   opacity: 0.55;
@@ -188,44 +176,27 @@ body{
   transform: none !important;
 }
 
-/* Primary gradient */
+/* Primary */
 .btn-ws-primary{
   background-image: linear-gradient(135deg, var(--ws-primary-1), var(--ws-primary-2));
   color: #ffffff;
 }
-
 .btn-ws-primary:hover{
   filter: brightness(0.95);
   box-shadow: 0 6px 14px rgba(34, 87, 170, 0.35);
   transform: translateY(-1px);
 }
 
-/* Soft pastel */
+/* Soft */
 .btn-ws-soft{
   background-color: var(--ws-soft-bg);
   color: var(--ws-soft-text);
   box-shadow: 0 2px 8px rgba(23, 60, 117, 0.08);
 }
-
 .btn-ws-soft:hover{
   background-color: var(--ws-soft-bg-hover);
   color: var(--ws-soft-text-hover);
   box-shadow: 0 4px 12px rgba(23, 60, 117, 0.16);
-  transform: translateY(-1px);
-}
-
-/* Outline */
-.btn-ws-outline{
-  background-color: transparent;
-  color: var(--ws-soft-text);
-  border: 1px solid rgba(33, 82, 152, 0.35);
-  box-shadow: none;
-}
-
-.btn-ws-outline:hover{
-  background-color: rgba(33, 82, 152, 0.06);
-  border-color: rgba(33, 82, 152, 0.6);
-  box-shadow: 0 3px 8px rgba(15, 35, 52, 0.18);
   transform: translateY(-1px);
 }
 
@@ -236,59 +207,37 @@ body{
   box-shadow: none;
   padding-inline: 0.75rem;
 }
-
 .btn-ws-ghost:hover{
   background-color: rgba(148, 163, 184, 0.12);
   color: #475569;
 }
 
-/* Danger */
+/* Danger / Success (GENERAL buttons)
+   NOTE: Choice quiz uses these class names too, but only buttons with .ws-choice
+   will get the overlay treatment below. Everywhere else, these are real buttons. */
 .btn-ws-danger{
   background: linear-gradient(135deg, var(--ws-danger-1), var(--ws-danger-2));
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(248, 113, 113, 0.4);
 }
-
 .btn-ws-danger:hover{
   background: linear-gradient(135deg, var(--ws-danger-1-hover), var(--ws-danger-2-hover));
   box-shadow: 0 6px 14px rgba(185, 28, 28, 0.5);
   transform: translateY(-1px);
 }
 
-/* Success */
 .btn-ws-success{
   background: linear-gradient(135deg, var(--ws-success-1), var(--ws-success-2));
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
 }
-
 .btn-ws-success:hover{
   background: linear-gradient(135deg, var(--ws-success-1-hover), var(--ws-success-2-hover));
   box-shadow: 0 6px 16px rgba(22, 163, 74, 0.45);
   transform: translateY(-1px);
 }
 
-/* Glass */
-.btn-ws-glass{
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--ws-radius-md);
-  color: var(--ws-text);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-}
-
-.btn-ws-glass:hover{
-  background: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
-  transform: translateY(-1px);
-}
-
-@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
-  .btn-ws-glass{ background: rgba(255,255,255,0.92); }
-}
-
-/* Icon button (circle) */
+/* Icon */
 .btn-ws-icon{
   width: 2.5rem;
   height: 2.5rem;
@@ -301,31 +250,23 @@ body{
   transition: transform var(--ws-t-fast), box-shadow var(--ws-t), background-color var(--ws-t), color var(--ws-t);
   flex: 0 0 auto;
 }
-
 .btn-ws-icon:hover{
   background-color: #d6e5ff;
   color: var(--ws-soft-text-hover);
   transform: translateY(-1px);
   box-shadow: 0 5px 14px rgba(15, 35, 52, 0.2);
 }
-
 .btn-ws-icon:focus-visible{
   outline: none;
   box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12), var(--ws-focus-ring);
 }
-
-.btn-ws-icon i{
-  font-size: 1.1rem;
-}
-
-.btn-ws-icon-label i{
-  margin-right: 0.35rem;
-  font-size: 1.1rem;
-}
+.btn-ws-icon i{ font-size: 1.1rem; }
 
 /* ==========================
-   QUIZ: CHOICE BUTTONS
+   QUIZ: CHOICE BUTTONS (CHOICE MODE ONLY)
+   Fix: fade background-color instead of overlay pseudo-element
 ========================== */
+
 .choice-btn{
   width: 100%;
   padding-block: 0.75rem;
@@ -334,60 +275,107 @@ body{
   font-weight: 600;
   letter-spacing: 0.02em;
   border: 0;
-  transition: transform var(--ws-t-fast), box-shadow var(--ws-t), background-color var(--ws-t), color var(--ws-t), filter var(--ws-t);
+  position: relative;
+  overflow: hidden;
+
+  transition:
+    transform var(--ws-t),
+    box-shadow var(--ws-t),
+    background-color var(--ws-reveal-dur) var(--ws-reveal-ease),
+    color var(--ws-reveal-dur) var(--ws-reveal-ease);
 }
 
-/* Default soft look */
-.choice-btn:not(.btn-success):not(.btn-danger){
+/* Base soft look */
+.choice-btn.btn-ws-soft{
   background-color: var(--ws-soft-bg);
   color: var(--ws-soft-text);
-  box-shadow: 0 2px 8px rgba(23, 60, 117, 0.08);
+  box-shadow: 0 4px 12px rgba(15, 35, 52, 0.08);
 }
-
-.choice-btn:not(.btn-success):not(.btn-danger):hover{
+.choice-btn.btn-ws-soft:hover{
   background-color: var(--ws-soft-bg-hover);
   color: var(--ws-soft-text-hover);
-  box-shadow: 0 4px 12px rgba(23, 60, 117, 0.16);
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 35, 52, 0.12);
 }
 
-/* If your JS still uses these state classes */
-.choice-btn.btn-success{
-  background: linear-gradient(135deg, var(--ws-success-1), var(--ws-success-2));
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
-}
-.choice-btn.btn-danger{
-  background: linear-gradient(135deg, var(--ws-danger-1), var(--ws-danger-2));
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(185, 28, 28, 0.35);
+/* Prevent hover/active motion while revealing */
+.choice-btn.answer-reveal:hover,
+.choice-btn.answer-visible:hover,
+.choice-btn.answer-reveal:active,
+.choice-btn.answer-visible:active{
+  transform: none;
 }
 
-#next-btn:disabled{
-  opacity: 0.4;
-  filter: saturate(60%);
-  cursor: not-allowed;
+/* Staging micro-feedback */
+.choice-btn.answer-reveal{ transform: scale(0.985); }
+.choice-btn.answer-visible{ transform: scale(1); }
+
+/* === CHOICE-only fade states === */
+/* Keep background soft until answer-visible arrives */
+.choice-btn.ws-choice.btn-ws-success,
+.choice-btn.ws-choice.btn-ws-danger{
+  background-image: none !important; /* prevent instant gradient jumps */
+}
+
+/* When visible + correct: fade to solid success */
+.choice-btn.ws-choice.answer-visible.btn-ws-success{
+  background-color: var(--ws-success-2) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.28);
+}
+
+/* When visible + wrong: fade to solid danger */
+.choice-btn.ws-choice.answer-visible.btn-ws-danger{
+  background-color: var(--ws-danger-2) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(225, 29, 72, 0.25);
+}
+
+/* Don’t gray out selected result if disabled */
+.choice-btn.ws-choice.answer-visible.btn-ws-success:disabled,
+.choice-btn.ws-choice.answer-visible.btn-ws-danger:disabled{
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Wrong answer shake */
+@keyframes ws-shake{
+  0%, 100% { transform: translateX(0) scale(1); }
+  20% { transform: translateX(-4px) scale(1); }
+  40% { transform: translateX(4px) scale(1); }
+  60% { transform: translateX(-3px) scale(1); }
+  80% { transform: translateX(3px) scale(1); }
+}
+.choice-btn.ws-choice.answer-visible.btn-ws-danger{
+  animation: ws-shake 280ms ease;
 }
 
 /* ==========================
-   QUIZ: MATCHING UI STATES
+   QUIZ: MATCHING UI
 ========================== */
 .match-item{
-  /* 🔒 Keep pill inside its column */
   width: 100%;
   max-width: 100%;
+  min-height: 3.25rem;
 
-  /* ✅ Allow long words to wrap instead of overflowing */
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
 
-  /* existing transitions */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
+
   transition:
     background-color 0.35s ease,
     color 0.35s ease,
-    box-shadow 0.35s ease;
+    box-shadow 0.35s ease,
+    transform 0.2s ease;
 }
+
+.match-item:active{ transform: translateY(1px); }
 
 .match-wrong{
   background-color: #fee2e2 !important;
@@ -403,6 +391,13 @@ body{
   transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
 }
 
+/* If your match JS uses these, keep them vivid */
+.match-correct{
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5);
+}
+
 /* ==========================
    IMPORT: STICKY BAR
 ========================== */
@@ -413,7 +408,6 @@ body{
   display: flex;
   justify-content: center;
 }
-
 .import-sticky-inner{
   width: fit-content;
   background: rgba(255, 255, 255, 0.96);
@@ -432,42 +426,8 @@ body{
   pointer-events: auto;
 }
 
-@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
-  .import-sticky-inner{ background: rgba(255,255,255,0.98); }
-}
-
 /* ==========================
-   HERO / FLAGS / GRADIENT TEXT
-========================== */
-.ws-flags-strip{
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.hero-gradient-text span{
-  background: linear-gradient(90deg, #5a8dee, #7fd6c2);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-fill-color: transparent;
-}
-
-/* ==========================
-   SCROLL ANIMATIONS
-========================== */
-.ws-animate{
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity var(--ws-t-slow), transform var(--ws-t-slow);
-}
-
-.ws-animate.visible{
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ==========================
-   WORDS TABLE – MINIMAL STYLE
+   WORDS TABLE
 ========================== */
 .ws-table-wrapper{
   margin: 0 auto;
@@ -480,18 +440,16 @@ body{
 }
 
 .ws-table-scroll{
-  overflow-x: auto; /* desktop/tablet can scroll if needed */
+  overflow-x: auto;
   width: 100%;
 }
 
-/* Table */
 table.ws-table{
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
 
-/* Header */
 .ws-table thead{
   background: linear-gradient(to right, #eff6ff, #ffffff);
 }
@@ -507,23 +465,14 @@ table.ws-table{
   white-space: nowrap;
 }
 
-.ws-lang-header{
-  text-align: center;
-  vertical-align: middle;
-}
-
-/* Cells / Rows */
 .ws-table tbody td{
   padding: 0.65rem 0.8rem;
   border-bottom: 1px solid var(--ws-border);
   vertical-align: middle;
 }
 
-.ws-table tbody tr:hover{
-  background-color: #f9fafb;
-}
+.ws-table tbody tr:hover{ background-color: #f9fafb; }
 
-/* Columns */
 .ws-col-original{
   white-space: nowrap;
   overflow: hidden;
@@ -533,11 +482,8 @@ table.ws-table{
   color: #111827;
 }
 
-.ws-col-translation{
-  white-space: normal;
-}
+.ws-col-translation{ white-space: normal; }
 
-/* Checkbox */
 .ws-check-header,
 .ws-check-cell{
   width: 40px;
@@ -551,23 +497,6 @@ table.ws-table{
   accent-color: var(--ws-primary-1);
 }
 
-/* Language badge */
-.ws-lang-cell{
-  text-align: center;
-  vertical-align: middle;
-}
-
-.ws-lang-badge{
-  display: inline-block;
-  padding: 0.2rem 0.55rem;
-  border-radius: 8px;
-  background-color: #eef4ff;
-  color: #1d4ed8;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-/* Actions */
 .ws-actions-cell{
   white-space: nowrap;
   width: 1%;
@@ -575,12 +504,6 @@ table.ws-table{
   vertical-align: middle;
 }
 
-.ws-actions-header{
-  text-align: center;
-  vertical-align: middle;
-}
-
-/* Force icon buttons to stay horizontal */
 .ws-actions-cell .btn-row{
   display: inline-flex;
   flex-wrap: nowrap;
@@ -588,58 +511,17 @@ table.ws-table{
   gap: 0.4rem;
 }
 
-/* Keep accessible focus for icon buttons */
-.ws-actions-cell .btn-ws-icon{
-  border: 0;
-  outline: none;
-}
-
-.ws-actions-cell .btn-ws-icon:focus-visible{
-  outline: none;
-  box-shadow: 0 3px 10px rgba(15, 35, 52, 0.12), var(--ws-focus-ring);
-}
+/* Unknown language */
+.ws-row-unknown{ background-color: rgba(255, 193, 7, 0.08); }
+.ws-table tbody tr.ws-row-unknown:hover{ background-color: rgba(255, 193, 7, 0.22); }
 
 /* ==========================
-   UNKNOWN LANGUAGE HIGHLIGHT
-========================== */
-.ws-row-unknown{
-  background-color: rgba(255, 193, 7, 0.08);
-}
-
-.ws-lang-badge-unknown{
-  background-color: #ffc107;
-  color: #212529;
-}
-
-/* ✅ Unknown rows: stronger yellow on hover */
-.ws-table tbody tr.ws-row-unknown:hover{
-  background-color: rgba(255, 193, 7, 0.18);
-}
-
-/* ==========================
-   MOBILE (<= 576px)
-   - NO horizontal scrolling
-   - fixed table layout
-   - ellipsis truncation for long words
+   MOBILE TABLE (no horizontal scroll)
 ========================== */
 @media (max-width: 576px){
-
-  /* Sticky bar */
-  .import-sticky-inner{
-    border-radius: var(--ws-radius-md);
-    padding: 0.6rem 0.6rem;
-  }
-
-  .import-sticky-inner .btn,
-  .import-sticky-inner button{
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
-  }
-
-  /* Table sizing */
   table.ws-table{
     font-size: 0.86rem;
-    table-layout: fixed;  /* ✅ critical for ellipsis */
+    table-layout: fixed;
     width: 100%;
   }
 
@@ -648,18 +530,9 @@ table.ws-table{
     padding: 0.45rem 0.5rem;
   }
 
-  /* Hide language column on small screens */
-  .ws-lang-header,
-  .ws-lang-cell{
-    display: none;
-  }
+  /* Hide horizontal scroll; enforce ellipsis */
+  .ws-table-scroll{ overflow-x: hidden; }
 
-  /* ✅ prevent horizontal scroll on mobile */
-  .ws-table-scroll{
-    overflow-x: hidden;
-  }
-
-  /* ✅ ellipsis on mobile for long content */
   .ws-table tbody td{
     overflow: hidden;
     text-overflow: ellipsis;
@@ -670,17 +543,14 @@ table.ws-table{
     white-space: nowrap;
   }
 
-  /* column sizing */
   .ws-check-header,
   .ws-check-cell{ width: 34px; }
 
-  .ws-actions-cell{ width: 92px; } /* tweak 80–110px as needed */
+  .ws-actions-cell{ width: 92px; }
 
-  /* tighter icon buttons */
   .ws-actions-cell .btn-row{ gap: 0.3rem; }
   .ws-actions-cell .btn-ws-icon{ width: 2.2rem; height: 2.2rem; }
 
-  /* Edge-to-edge table option */
   .ws-table-wrapper{
     margin: 0;
     border-radius: 0;

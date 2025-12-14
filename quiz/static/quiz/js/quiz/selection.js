@@ -14,10 +14,20 @@ export function initQuizSelection() {
   );
 
   function updateLanguageVisibility() {
-    if (!languageWrapper) return;
+    if (!languageWrapper || !languageSelect) return;
+
     const isGeneral = !quizSelector.value;
+
     languageWrapper.style.display = isGeneral ? "" : "none";
+
+    // ✅ IMPORTANT: don’t block submit for custom quizzes
+    languageSelect.disabled = !isGeneral;
+    languageSelect.required = isGeneral;
+
+    // optional: clear value when switching to custom
+    if (!isGeneral) languageSelect.value = "";
   }
+
 
   // ✅ RESTORED ORIGINAL SAFE WORD COUNT LOGIC
   function getCurrentWordCount() {
