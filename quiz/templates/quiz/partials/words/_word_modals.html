@@ -13,7 +13,11 @@
       <div class="modal-body">
         <form id="edit-form" method="post">
           {% csrf_token %}
+
           <input type="hidden" id="edit-id" name="id">
+
+          {# ✅ NEW: lets JS override the POST endpoint (quiz manage page) #}
+          <input type="hidden" id="edit-url" name="edit_url" value="">
 
           <div class="mb-3">
             <label for="edit-original" class="form-label">Original Word</label>
@@ -47,8 +51,8 @@
             </select>
           </div>
 
-          {# ✅ New: quiz selector (only if at least one quiz exists) #}
-          {% if user_quizzes %}
+          {# ✅ Optional: quiz selector (only if quizzes exist AND not hidden for this page) #}
+          {% if user_quizzes and not hide_quiz_picker %}
             <div class="mb-3">
               <label for="edit-quiz" class="form-label">Add to quiz (optional)</label>
               <select id="edit-quiz" name="quiz_id" class="form-select">
@@ -101,9 +105,7 @@
               </label>
 
               <select id="add-language" name="language" class="form-select" required>
-                {# Placeholder: required + not selectable #}
                 <option value="" selected disabled>Select language…</option>
-
                 {% for code, name in language_choices %}
                   <option value="{{ code }}">{{ name }}</option>
                 {% endfor %}

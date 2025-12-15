@@ -22,4 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initSingleDelete(config);
   initAddWordsModal(config);
+
+  // ✅ Hook edit modal behavior (defined by quiz/js/words/words_edit.js)
+  window.initWordsEdit?.();
 });

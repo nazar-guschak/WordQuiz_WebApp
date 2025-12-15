@@ -6,8 +6,12 @@
     <div class="col-12 col-lg-9">
       <div class="input-group">
         <span class="input-group-text">🔍</span>
-        <input type="text" id="quiz-word-search" class="form-control"
-               placeholder="Search within this quiz (original or translation)...">
+        <input
+          type="text"
+          id="quiz-word-search"
+          class="form-control"
+          placeholder="Search within this quiz (original or translation)..."
+        >
       </div>
     </div>
 
@@ -33,100 +37,124 @@
       Add Words
     </button>
 
-    {# ✅ NEW: Quiz-aware import entry point #}
+    {# ✅ Quiz-aware import entry point #}
     <a
       href="{% url 'quiz:upload_words' %}?quiz_id={{ quiz.id }}"
-      class="btn btn-ws-base btn-ws-primary flex-fill flex-sm-grow-0 text-nowrap"
+      class="btn btn-ws-base btn-ws-soft flex-fill flex-sm-grow-0 text-nowrap"
     >
       <i class="bi bi-upload me-1"></i>
       Import Words
     </a>
 
-    <button id="bulk-delete-btn"
-            class="btn btn-ws-base btn-ws-danger flex-fill flex-sm-grow-0 text-nowrap d-none"
-            disabled>
+      <a
+        href="{% url 'quiz:quiz' %}?start=1&quiz_id={{ quiz.id }}"
+        class="btn btn-ws-base btn-ws-primary text-nowrap"
+    >
+        <i class="bi bi-play-circle me-1"></i>
+        Start quiz
+    </a>
+
+    <button
+      id="bulk-delete-btn"
+      class="btn btn-ws-base btn-ws-danger flex-fill flex-sm-grow-0 text-nowrap d-none"
+      disabled
+    >
       <i class="bi bi-trash3 me-1"></i>
       Delete selected
     </button>
   </div>
 </div>
 
-
-
 {# ========== Dynamic word count for quiz words ========== #}
 <p class="text-muted mb-3" id="quiz-word-count-text">
-    Showing
-    <span id="quiz-word-count-number">{{ quiz_words|length }}</span>
-    word{% if quiz_words|length != 1 %}s{% endif %}
+  Showing
+  <span id="quiz-word-count-number">{{ quiz_words|length }}</span>
+  word{% if quiz_words|length != 1 %}s{% endif %}
 </p>
-
 
 {# ========== Words in this quiz (Minimal WS Table) ========== #}
 <div class="ws-table-wrapper">
-    <div class="ws-table-scroll">
-        <table class="ws-table">
-            <thead>
-                <tr>
+  <div class="ws-table-scroll">
+    <table class="ws-table ws-table-quiz-words">
+      <thead>
+        <tr>
+          {# Select all #}
+          <th class="ws-check-header">
+            <input type="checkbox" id="quiz-word-select-all" class="ws-check-input">
+          </th>
 
-                    {# Select all #}
-                    <th class="ws-check-header">
-                        <input type="checkbox" id="quiz-word-select-all" class="ws-check-input">
-                    </th>
+          <th>Original</th>
+          <th>Translation</th>
+          <th class="ws-lang-header">Language</th>
+          <th class="ws-actions-header">Actions</th>
+        </tr>
+      </thead>
 
-                    <th>Original</th>
-                    <th>Translation</th>
-                    <th class="ws-lang-header">Language</th>
-                    <th class="ws-actions-header">Actions</th>
+      <tbody id="quiz-word-table-body">
+        {% for word in quiz_words %}
+          <tr data-word-id="{{ word.id }}" data-language="{{ word.language }}">
 
-                </tr>
-            </thead>
+            {# Row checkbox #}
+            <td class="ws-check-cell">
+              <input type="checkbox" class="ws-check-input quiz-word-checkbox">
+            </td>
 
-            <tbody id="quiz-word-table-body">
-                {% for word in quiz_words %}
-                <tr data-word-id="{{ word.id }}" data-language="{{ word.language }}">
+            {# Original #}
+            <td class="ws-col-original">
+              {{ word.original_word }}
+            </td>
 
-                    {# Row checkbox #}
-                    <td class="ws-check-cell">
-                        <input type="checkbox" class="ws-check-input quiz-word-checkbox">
-                    </td>
+            {# Translation #}
+            <td class="ws-col-translation">
+              {{ word.translation }}
+            </td>
 
-                    {# Original #}
-                    <td class="ws-col-original">
-                        {{ word.original_word }}
-                    </td>
+            {# Language (hidden automatically on mobile by CSS) #}
+            <td class="ws-lang-cell">
+              <span class="ws-lang-badge">{{ word.language|upper }}</span>
+            </td>
 
-                    {# Translation #}
-                    <td class="ws-col-translation">
-                        {{ word.translation }}
-                    </td>
+            {# Actions #}
+            <td class="ws-actions-cell">
+              <div class="btn-row">
 
-                    {# Language (hidden automatically on mobile by CSS) #}
-                    <td class="ws-lang-cell">
-                        <span class="ws-lang-badge">
-                            {{ word.language|upper }}
-                        </span>
-                    </td>
+                {# ✅ NEW: Edit word (reuses the existing #editModal from _word_modals.html) #}
+                <button
+                  type="button"
+                  class="btn-ws-icon edit quiz-edit-word-btn"
+                  title="Edit word"
+                  aria-label="Edit word"
+                  data-word-id="{{ word.id }}"
+                  data-original="{{ word.original_word|escape }}"
+                  data-translation="{{ word.translation|escape }}"
+                  data-language="{{ word.language }}"
+                  data-edit-url="{% url 'quiz:edit_word' word.id %}"
+                >
+                  <i class="bi bi-pencil-square"></i>
+                </button>
 
-                    {# Actions #}
-                    <td class="ws-actions-cell">
-                        <div class="btn-row">
+                {# Existing: remove from quiz #}
+                <button
+                  type="button"
+                  class="btn-ws-icon delete remove-word-btn"
+                  title="Remove from quiz"
+                  aria-label="Remove word from this quiz"
+                >
+                  <i class="bi bi-trash3"></i>
+                </button>
 
-                            <button type="button" class="btn-ws-icon delete remove-word-btn" title="Remove from quiz" aria-label="Remove word from this quiz">
-                                <i class="bi bi-trash3"></i>
-                            </button>
+              </div>
+            </td>
 
-                        </div>
-                    </td>
-
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted py-4">
-                        This quiz has no words yet.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="100%" class="text-center text-muted py-4">
+              This quiz has no words yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>

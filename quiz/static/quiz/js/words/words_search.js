@@ -1,156 +1,137 @@
 // static/quiz/js/words/words_search.js
 
 window.initWordsSearch = function () {
-  const input = document.getElementById("word-search-input");
-  const languageFilter = document.getElementById("language-filter");
-  const tableBody = document.getElementById("word-table-body");
-  const wordCountNumber = document.getElementById("word-count-number");
+  var input = document.getElementById("word-search-input");
+  var languageFilter = document.getElementById("language-filter");
+  var tableBody = document.getElementById("word-table-body");
+  var wordCountNumber = document.getElementById("word-count-number");
 
   if (!tableBody) return;
 
-  let timer;
+  var timer = null;
 
   function updateWordCount(count) {
-    if (wordCountNumber) {
-      wordCountNumber.textContent = count;
-    }
+    if (wordCountNumber) wordCountNumber.textContent = String(count);
   }
 
-  // ✅ ALWAYS FETCH + AUTO-SORT DATA (CASE-INSENSITIVE)
-  async function searchWords() {
-    const query = input ? input.value : "";
-    const language = languageFilter ? languageFilter.value : "";
+  function renderLanguageCellHTML(languageCode) {
+    var code = (languageCode || "").trim().toLowerCase();
 
-    const params = new URLSearchParams();
-    if (query) params.set("q", query);
-    if (language) params.set("language", language);
+    if (code) {
+      return '<span class="ws-lang-badge">' + code.toUpperCase() + "</span>";
+    }
 
-    const response = await fetch(`?${params.toString()}`, {
-      headers: { "X-Requested-With": "XMLHttpRequest" },
-    });
+    return (
+      '<span class="ws-lang-badge ws-lang-badge-unknown">Unknown</span>' +
+      '<span class="text-muted small d-block">Excluded from quizzes</span>'
+    );
+  }
 
-    const data = await response.json();
-
-    // ✅ FORCE CASE-INSENSITIVE SORT BY ORIGINAL WORD
-    const words = (data.words || []).sort((a, b) => {
-      return (a.original_word || "").localeCompare(
-        b.original_word || "",
-        "de",
-        { sensitivity: "base" }
-      );
-    });
-
-    renderTable(words);
+  function setEmptyState() {
+    tableBody.innerHTML =
+      '<tr><td colspan="5" class="text-center text-muted py-4">No words found.</td></tr>';
+    updateWordCount(0);
+    if (window.updateBulkDeleteState) window.updateBulkDeleteState();
   }
 
   function renderTable(words) {
     tableBody.innerHTML = "";
 
-    if (!words.length) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="5" class="text-center text-muted py-4">
-            No words found.
-          </td>
-        </tr>
-      `;
-      updateWordCount(0);
+    if (!words || !words.length) {
+      setEmptyState();
       return;
     }
 
-    words.forEach((word) => {
-      const row = document.createElement("tr");
-      row.dataset.id = word.id;
+    for (var i = 0; i < words.length; i++) {
+      var word = words[i];
+
+      var row = document.createElement("tr");
+      row.setAttribute("data-id", String(word.id));
       row.dataset.language = word.language || "";
 
-      const isUnknown = word.has_unknown_language || !word.language;
+      if (!word.language) row.classList.add("ws-row-unknown");
 
-      if (isUnknown) {
-        row.classList.add("ws-row-unknown");
-      }
-
-      // ===== Checkbox cell =====
-      const checkTd = document.createElement("td");
+      // checkbox
+      var checkTd = document.createElement("td");
       checkTd.className = "ws-check-cell";
       checkTd.innerHTML =
         '<input type="checkbox" class="ws-check-input word-checkbox">';
       row.appendChild(checkTd);
 
-      // ===== Original =====
-      const originalTd = document.createElement("td");
+      // original
+      var originalTd = document.createElement("td");
       originalTd.className = "ws-col-original";
-      originalTd.textContent = word.original_word;
+      originalTd.textContent = word.original_word || "";
       row.appendChild(originalTd);
 
-      // ===== Translation =====
-      const translationTd = document.createElement("td");
+      // translation
+      var translationTd = document.createElement("td");
       translationTd.className = "ws-col-translation";
-      translationTd.textContent = word.translation;
+      translationTd.textContent = word.translation || "";
       row.appendChild(translationTd);
 
-      // ===== Language =====
-      const langTd = document.createElement("td");
+      // language (FIX: always code -> DE/EN, never full name)
+      var langTd = document.createElement("td");
       langTd.className = "ws-lang-cell";
-
-      const languageDisplay =
-        word.language_display || word.language || "";
-
-      if (isUnknown) {
-        langTd.innerHTML = `
-          <span class="ws-lang-badge ws-lang-badge-unknown">
-            Unknown
-          </span>
-          <span class="text-muted small d-block">
-            Excluded from quizzes
-          </span>
-        `;
-      } else {
-        langTd.innerHTML = `
-          <span class="ws-lang-badge">
-            ${languageDisplay}
-          </span>
-        `;
-      }
-
+      langTd.innerHTML = renderLanguageCellHTML(word.language);
       row.appendChild(langTd);
 
-      // ===== Actions =====
-      const actionsTd = document.createElement("td");
+      // actions
+      var actionsTd = document.createElement("td");
       actionsTd.className = "ws-actions-cell";
-      actionsTd.innerHTML = `
-        <div class="btn-row">
-          <button
-            type="button"
-            class="btn-ws-icon edit edit-btn"
-            title="Edit"
-            aria-label="Edit word"
-          >
-            <i class="bi bi-pencil-square"></i>
-          </button>
-          <button
-            type="button"
-            class="btn-ws-icon delete delete-btn"
-            title="Delete"
-            aria-label="Delete word"
-          >
-            <i class="bi bi-trash3"></i>
-          </button>
-        </div>
-      `;
+      actionsTd.innerHTML =
+        '<div class="btn-row">' +
+        '  <button type="button" class="btn-ws-icon edit edit-btn" title="Edit" aria-label="Edit word">' +
+        '    <i class="bi bi-pencil-square"></i>' +
+        "  </button>" +
+        '  <button type="button" class="btn-ws-icon delete delete-btn" title="Delete" aria-label="Delete word">' +
+        '    <i class="bi bi-trash3"></i>' +
+        "  </button>" +
+        "</div>";
       row.appendChild(actionsTd);
 
       tableBody.appendChild(row);
-    });
+    }
 
     updateWordCount(words.length);
+    if (window.updateBulkDeleteState) window.updateBulkDeleteState();
+  }
 
-    // Keep your existing bulk-delete hook
-    window.updateBulkDeleteState?.();
+  function searchWords() {
+    var query = input ? input.value : "";
+    var language = languageFilter ? languageFilter.value : "";
+
+    var params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (language) params.set("language", language);
+
+    fetch("?" + params.toString(), {
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      credentials: "same-origin",
+    })
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        var words = data && data.words ? data.words : [];
+        // optional: sort by original
+        words.sort(function (a, b) {
+          var ao = (a.original_word || "").toLowerCase();
+          var bo = (b.original_word || "").toLowerCase();
+          if (ao < bo) return -1;
+          if (ao > bo) return 1;
+          return 0;
+        });
+        renderTable(words);
+      })
+      .catch(function () {
+        setEmptyState();
+      });
   }
 
   if (input) {
-    input.addEventListener("input", () => {
-      clearTimeout(timer);
+    input.addEventListener("input", function () {
+      if (timer) clearTimeout(timer);
       timer = setTimeout(searchWords, 300);
     });
   }
@@ -159,6 +140,5 @@ window.initWordsSearch = function () {
     languageFilter.addEventListener("change", searchWords);
   }
 
-  // ✅ Expose globally for add/edit modules
   window.searchWords = searchWords;
 };

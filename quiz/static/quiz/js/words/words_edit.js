@@ -1,68 +1,111 @@
 // static/quiz/js/words/words_edit.js
 
+function getCSRFToken() {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("csrftoken="))
+    ?.split("=")[1];
+}
+
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Keep language rendering consistent with templates/quiz/partials/_words_tab.html:
+ * - Known language => <span class="ws-lang-badge">DE</span>
+ * - Unknown => Unknown badge + "Excluded from quizzes"
+ */
+function renderLanguageCellHTML(languageCode) {
+  const code = (languageCode || "").trim().toLowerCase();
+
+  if (code) {
+    return `
+      <span class="ws-lang-badge">${code.toUpperCase()}</span>
+    `.trim();
+  }
+
+  return `
+    <span class="ws-lang-badge ws-lang-badge-unknown">Unknown</span>
+    <span class="text-muted small d-block">Excluded from quizzes</span>
+  `.trim();
+}
+
 window.initWordsEdit = function () {
-  const tableBody = document.getElementById("word-table-body");
   const editModalEl = document.getElementById("editModal");
   const editForm = document.getElementById("edit-form");
+  if (!editForm) return;
 
-  if (!tableBody || !editForm) return;
+  const editModal =
+    window.bootstrap && editModalEl ? new bootstrap.Modal(editModalEl) : null;
 
-  // Optional fields
-  const editQuizSelect = editForm.querySelector("#edit-quiz"); // may not exist
+  // Works on either page
+  const generalBody = document.getElementById("word-table-body");
+  const quizBody = document.getElementById("quiz-word-table-body");
+  if (!generalBody && !quizBody) return;
 
-  const editModal = (window.bootstrap && editModalEl)
-    ? new bootstrap.Modal(editModalEl)
-    : null;
+  const editUrlInput = editForm.querySelector("#edit-url"); // optional
+  const editQuizSelect = editForm.querySelector("#edit-quiz"); // optional
 
-  function getRowWordData(row) {
-    // Your table appears to be: [0]=checkbox/controls, [1]=original, [2]=translation, ...
-    const original = row.children?.[1]?.textContent?.trim() || "";
-    const translation = row.children?.[2]?.textContent?.trim() || "";
-    const language = row.dataset.language || "";
-    return { original, translation, language };
+  function fillForm({ id, original, translation, language, editUrl }) {
+    editForm.querySelector("#edit-id").value = id || "";
+    editForm.querySelector("#edit-original").value = original || "";
+    editForm.querySelector("#edit-translation").value = translation || "";
+    editForm.querySelector("#edit-language").value = (language || "").toLowerCase();
+
+    if (editUrlInput) editUrlInput.value = editUrl || "";
+    if (editQuizSelect) editQuizSelect.value = "";
+
+    editModal?.show();
   }
 
-  async function safeJson(res) {
-    try {
-      return await res.json();
-    } catch {
-      return null;
-    }
-  }
+  function bindBody(body, mode) {
+    body.addEventListener("click", async (e) => {
+      // ✅ EDIT (general: .edit-btn, quiz: .quiz-edit-word-btn)
+      const editBtn =
+        e.target.closest(".edit-btn") || e.target.closest(".quiz-edit-word-btn");
 
-  // --------------------------
-  // Row click delegation
-  // --------------------------
-  tableBody.addEventListener("click", async (e) => {
-    const row = e.target.closest("tr[data-id]");
-    if (!row) return;
+      if (editBtn) {
+        const row =
+          editBtn.closest("tr[data-id]") || editBtn.closest("tr[data-word-id]");
 
-    const id = row.dataset.id;
-    if (!id) return;
+        const id =
+          editBtn.dataset.wordId || row?.dataset.wordId || row?.dataset.id;
 
-    // ✅ EDIT
-    if (e.target.closest(".edit-btn")) {
-      const { original, translation, language } = getRowWordData(row);
+        if (!id) return;
 
-      editForm.querySelector("#edit-id").value = id;
-      editForm.querySelector("#edit-original").value = original;
-      editForm.querySelector("#edit-translation").value = translation;
-      editForm.querySelector("#edit-language").value = language;
+        // Prefer dataset from button (quiz table should have these)
+        const original =
+          editBtn.dataset.original ||
+          row?.querySelector(".ws-col-original")?.textContent?.trim() ||
+          "";
 
-      // Optional: reset quiz selector each open so user must actively choose
-      if (editQuizSelect) {
-        editQuizSelect.value = "";
+        const translation =
+          editBtn.dataset.translation ||
+          row?.querySelector(".ws-col-translation")?.textContent?.trim() ||
+          "";
+
+        const language = editBtn.dataset.language || row?.dataset.language || "";
+        const editUrl = editBtn.dataset.editUrl || ""; // quiz table provides this
+
+        fillForm({ id, original, translation, language, editUrl });
+        return;
       }
 
-      editModal?.show();
-      return;
-    }
+      // ✅ DELETE (general words page only)
+      if (mode === "general" && e.target.closest(".delete-btn")) {
+        const row = e.target.closest("tr[data-id]");
+        if (!row) return;
 
-    // ✅ DELETE
-    if (e.target.closest(".delete-btn")) {
-      if (!confirm("Delete this word?")) return;
+        const id = row.dataset.id;
+        if (!id) return;
 
-      try {
+        if (!confirm("Delete this word?")) return;
+
         const res = await fetch(`/word_list/${id}/delete/`, {
           method: "POST",
           headers: {
@@ -77,54 +120,90 @@ window.initWordsEdit = function () {
         if (res.ok && data?.success) {
           row.remove();
           window.updateBulkDeleteState?.();
-          // Optional: if you show word count somewhere
           window.updateWordCount?.(-1);
         } else {
           alert(data?.error || "Delete failed");
         }
-      } catch (err) {
-        console.error(err);
-        alert("Delete failed (network error).");
       }
-    }
-  });
+    });
+  }
 
-  // --------------------------
-  // Submit edit form
-  // --------------------------
+  if (generalBody) bindBody(generalBody, "general");
+  if (quizBody) bindBody(quizBody, "quiz");
+
+  // ✅ Submit edit form (general + quiz)
   editForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const id = editForm.querySelector("#edit-id")?.value;
     if (!id) return;
 
-    try {
-      const formData = new FormData(editForm);
+    const formData = new FormData(editForm);
+    if (editQuizSelect && !formData.has("quiz_id")) {
+      formData.append("quiz_id", editQuizSelect.value || "");
+    }
 
-      // If you want to be explicit (not required if select has name="quiz_id")
-      // but safe in case you forgot name="quiz_id" in template:
-      if (editQuizSelect && !formData.has("quiz_id")) {
-        formData.append("quiz_id", editQuizSelect.value || "");
-      }
+    const url =
+      editUrlInput && editUrlInput.value
+        ? editUrlInput.value
+        : `/word_list/${id}/edit/`;
 
-      const res = await fetch(`/word_list/${id}/edit/`, {
-        method: "POST",
-        body: formData,
-        headers: { "X-Requested-With": "XMLHttpRequest" },
-        credentials: "same-origin",
-      });
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      credentials: "same-origin",
+    });
 
-      const data = await safeJson(res);
+    const data = await safeJson(res);
+    if (!(res.ok && data?.success)) {
+      alert(data?.error || "Save failed");
+      return;
+    }
 
-      if (res.ok && data?.success) {
-        editModal?.hide();
-        window.searchWords?.(); // reload table via AJAX
-      } else {
-        alert(data?.error || "Save failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Save failed (network error).");
+    editModal?.hide();
+
+    // General words page: keep your current flow (server/JS decides table HTML)
+    if (typeof window.searchWords === "function") {
+      window.searchWords();
+      return;
+    }
+
+    // Quiz manage page OR fallback: update row in-place
+    const row =
+      quizBody?.querySelector(`tr[data-word-id="${CSS.escape(id)}"]`) ||
+      generalBody?.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+
+    if (!row) return;
+
+    const newOriginal = (editForm.querySelector("#edit-original")?.value || "").trim();
+    const newTranslation = (editForm.querySelector("#edit-translation")?.value || "").trim();
+    const newLanguage = (editForm.querySelector("#edit-language")?.value || "").trim().toLowerCase();
+
+    const origCell = row.querySelector(".ws-col-original");
+    const transCell = row.querySelector(".ws-col-translation");
+    if (origCell) origCell.textContent = newOriginal;
+    if (transCell) transCell.textContent = newTranslation;
+
+    // Keep dataset in sync (used by other scripts)
+    row.dataset.language = newLanguage;
+
+    // ✅ Important: rebuild the whole language cell consistently
+    const langCell = row.querySelector(".ws-lang-cell");
+    if (langCell) {
+      langCell.innerHTML = renderLanguageCellHTML(newLanguage);
+    } else {
+      // Fallback: if no .ws-lang-cell exists, update badge if present
+      const badge = row.querySelector(".ws-lang-badge");
+      if (badge) badge.textContent = (newLanguage || "").toUpperCase();
+    }
+
+    // Keep quiz edit button dataset in sync (modal prefill)
+    const quizEditBtn = row.querySelector(".quiz-edit-word-btn");
+    if (quizEditBtn) {
+      quizEditBtn.dataset.original = newOriginal;
+      quizEditBtn.dataset.translation = newTranslation;
+      quizEditBtn.dataset.language = newLanguage;
     }
   });
 };

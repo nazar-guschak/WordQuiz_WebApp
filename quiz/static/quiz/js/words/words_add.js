@@ -1,4 +1,4 @@
-// static/quiz/js/words/words_add.js (or wherever your current initWordsAdd lives)
+// static/quiz/js/words/words_add.js
 
 window.initWordsAdd = function () {
   const addBtn = document.getElementById("add-word-btn");
@@ -7,13 +7,18 @@ window.initWordsAdd = function () {
   const container = document.getElementById("word-rows-container");
   const addRowBtn = document.getElementById("add-row-btn");
   const languageSelect = document.getElementById("add-language");
-
-  // ✅ Optional (only exists if user has quizzes)
-  const quizSelect = document.getElementById("add-quiz");
+  const quizSelect = document.getElementById("add-quiz"); // optional
 
   if (!addBtn || !addForm || !container || !addModalEl || !languageSelect) return;
 
   const addModal = window.bootstrap ? new bootstrap.Modal(addModalEl) : null;
+
+  function getCSRFToken() {
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("csrftoken="))
+      ?.split("=")[1];
+  }
 
   function createRow() {
     const row = document.createElement("div");
@@ -44,7 +49,7 @@ window.initWordsAdd = function () {
   }
 
   function reset() {
-    addForm.reset(); // resets language + optional quiz too
+    addForm.reset();
     container.innerHTML = "";
     container.appendChild(createRow());
     updateRemoveButtonsVisibility();
@@ -80,13 +85,8 @@ window.initWordsAdd = function () {
   addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const language = languageSelect.value;
-    if (!language) {
-      alert("Please select a language.");
-      return;
-    }
-
-    const quizId = quizSelect?.value?.trim() || ""; // optional
+    const language = (languageSelect.value || "").trim().toLowerCase(); // can be ""
+    const quizId = quizSelect?.value?.trim() || "";
 
     const pairs = [...container.querySelectorAll(".word-row")]
       .map((row) => ({
@@ -102,12 +102,11 @@ window.initWordsAdd = function () {
 
     const token = getCSRFToken();
 
-    // Submit sequentially (keeps your current behavior)
     for (const pair of pairs) {
       const fd = new FormData();
       fd.append("original_word", pair.original);
       fd.append("translation", pair.translation);
-      fd.append("language", language);
+      fd.append("language", language); // "" allowed
 
       if (quizId) fd.append("quiz_id", quizId);
 
@@ -125,11 +124,11 @@ window.initWordsAdd = function () {
 
       if (!res.ok || !data?.success) {
         alert(data?.error || "Failed to add a word.");
-        return; // stop on first error
+        return;
       }
     }
 
     addModal?.hide();
-    window.searchWords?.();
+    window.searchWords?.(); // table rebuild uses the fixed words_search.js
   });
 };

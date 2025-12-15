@@ -1,19 +1,6 @@
 /* =========================================================
    Word Stream – static/quiz/css/styles.css (FULL REWRITE)
-   Includes latest amendments:
-   - Choice quiz uses overlay fade-in ONLY for buttons marked .ws-choice
-     (JS adds .ws-choice in choice.js). This prevents match quiz regressions.
-   - Choice quiz:
-       - Result color fades in via overlay (opacity transition)
-       - Text never "fades out" (overlay behind text, no opacity on button)
-       - Wrong-answer shake works reliably
-       - Correct/wrong does not gray out if disabled
-   - Match quiz:
-       - Keeps classic background color changes via .match-selected/.match-wrong
-       - Centered, wrapped text (.match-item)
-   - Words table:
-       - Unknown language highlight + stronger hover
-       - Mobile fixed layout + ellipsis (no horizontal scroll)
+   Includes latest amendments + TABLE MOBILE HEADER ELLIPSIS + LANGUAGE BADGE OUTLINE
 ========================================================= */
 
 /* ==========================
@@ -59,8 +46,8 @@
   --ws-t: 250ms ease;
 
   /* quiz timings */
-  --ws-reveal-dur: 600ms;      /* overlay fade length */
-  --ws-reveal-ease: ease;      /* overlay easing */
+  --ws-reveal-dur: 600ms;      /* background fade length */
+  --ws-reveal-ease: ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -212,9 +199,7 @@ body{
   color: #475569;
 }
 
-/* Danger / Success (GENERAL buttons)
-   NOTE: Choice quiz uses these class names too, but only buttons with .ws-choice
-   will get the overlay treatment below. Everywhere else, these are real buttons. */
+/* Danger / Success (GENERAL buttons) */
 .btn-ws-danger{
   background: linear-gradient(135deg, var(--ws-danger-1), var(--ws-danger-2));
   color: #ffffff;
@@ -264,9 +249,7 @@ body{
 
 /* ==========================
    QUIZ: CHOICE BUTTONS (CHOICE MODE ONLY)
-   Fix: fade background-color instead of overlay pseudo-element
 ========================== */
-
 .choice-btn{
   width: 100%;
   padding-block: 0.75rem;
@@ -310,28 +293,24 @@ body{
 .choice-btn.answer-reveal{ transform: scale(0.985); }
 .choice-btn.answer-visible{ transform: scale(1); }
 
-/* === CHOICE-only fade states === */
-/* Keep background soft until answer-visible arrives */
+/* Choice-only fade states */
 .choice-btn.ws-choice.btn-ws-success,
 .choice-btn.ws-choice.btn-ws-danger{
-  background-image: none !important; /* prevent instant gradient jumps */
+  background-image: none !important;
 }
 
-/* When visible + correct: fade to solid success */
 .choice-btn.ws-choice.answer-visible.btn-ws-success{
   background-color: var(--ws-success-2) !important;
   color: #fff !important;
   box-shadow: 0 6px 16px rgba(22, 163, 74, 0.28);
 }
 
-/* When visible + wrong: fade to solid danger */
 .choice-btn.ws-choice.answer-visible.btn-ws-danger{
   background-color: var(--ws-danger-2) !important;
   color: #fff !important;
   box-shadow: 0 6px 16px rgba(225, 29, 72, 0.25);
 }
 
-/* Don’t gray out selected result if disabled */
 .choice-btn.ws-choice.answer-visible.btn-ws-success:disabled,
 .choice-btn.ws-choice.answer-visible.btn-ws-danger:disabled{
   opacity: 1 !important;
@@ -391,7 +370,6 @@ body{
   transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
 }
 
-/* If your match JS uses these, keep them vivid */
 .match-correct{
   background-color: #dcfce7 !important;
   color: #166534 !important;
@@ -516,9 +494,30 @@ table.ws-table{
 .ws-table tbody tr.ws-row-unknown:hover{ background-color: rgba(255, 193, 7, 0.22); }
 
 /* ==========================
-   MOBILE TABLE (no horizontal scroll)
+   LANGUAGE BADGE (RESTORE OUTLINE LOOK)
+========================== */
+.ws-lang-badge{
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #0d6efd;
+  color: #0d6efd;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.ws-lang-badge-unknown{
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+/* ==========================
+   MOBILE TABLE (ELLIPSIS HEADERS + NO OVERLAP)
 ========================== */
 @media (max-width: 576px){
+  /* Critical for ellipsis behavior */
   table.ws-table{
     font-size: 0.86rem;
     table-layout: fixed;
@@ -530,7 +529,14 @@ table.ws-table{
     padding: 0.45rem 0.5rem;
   }
 
-  /* Hide horizontal scroll; enforce ellipsis */
+  /* Make header labels truncate (fix overlap) */
+  .ws-table thead th{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Prevent horizontal scroll; keep cells clipping */
   .ws-table-scroll{ overflow-x: hidden; }
 
   .ws-table tbody td{
@@ -538,15 +544,27 @@ table.ws-table{
     text-overflow: ellipsis;
   }
 
+  /* Keep key columns compact / predictable */
+  .ws-check-header,
+  .ws-check-cell{ width: 34px; }
+
+  .ws-actions-header,
+  .ws-actions-cell{
+    width: 96px;
+    white-space: nowrap;
+  }
+
+  /* If you later add these classes in markup/JS, they’ll apply; otherwise harmless */
+  .ws-lang-header,
+  .ws-lang-cell{
+    width: 64px;
+  }
+
+  /* Optional: make both original+translation single-line on mobile */
   .ws-col-original,
   .ws-col-translation{
     white-space: nowrap;
   }
-
-  .ws-check-header,
-  .ws-check-cell{ width: 34px; }
-
-  .ws-actions-cell{ width: 92px; }
 
   .ws-actions-cell .btn-row{ gap: 0.3rem; }
   .ws-actions-cell .btn-ws-icon{ width: 2.2rem; height: 2.2rem; }
@@ -556,5 +574,47 @@ table.ws-table{
     border-radius: 0;
     border-left: none;
     border-right: none;
+  }
+    /* ==============================
+     Custom Quizzes table only
+     ============================== */
+
+  .ws-table-quizzes .ws-actions-header,
+  .ws-table-quizzes .ws-actions-cell{
+    width: 128px;
+    white-space: nowrap;
+  }
+
+  .ws-table-quizzes .ws-actions-cell{
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .ws-table-quizzes .btn-row{
+    gap: 0.2rem;
+  }
+
+  .ws-table-quizzes .btn-ws-icon{
+    width: 2.0rem;
+    height: 2.0rem;
+  }
+    /* Words table only: hide Language column on mobile */
+  .ws-table-words .ws-lang-header,
+  .ws-table-words .ws-lang-cell{
+    display: none;
+  }
+    /* =====================================
+     Quiz words table – hide Language col
+     ===================================== */
+
+  .ws-table-quiz-words .ws-lang-header,
+  .ws-table-quiz-words .ws-lang-cell{
+    display: none;
+  }
+
+  .container,
+  .container-fluid{
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 }

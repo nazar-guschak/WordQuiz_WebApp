@@ -110,7 +110,7 @@
   {# ========== Table ========== #}
   <div class="ws-table-wrapper">
     <div class="ws-table-scroll">
-      <table class="ws-table">
+      <table class="ws-table ws-table-words">
         <thead>
           <tr>
             <th class="ws-check-header">
@@ -156,9 +156,9 @@
               {# ✅ Language #}
               <td class="ws-lang-cell">
                 {% if word.language %}
-                  <span class="ws-lang-badge">
-                    {{ word.get_language_display }}
-                  </span>
+                    <span class="ws-lang-badge">
+                      {{ word.language|upper }}
+                    </span>
                 {% else %}
                   <span class="ws-lang-badge ws-lang-badge-unknown">
                     Unknown
@@ -197,7 +197,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="text-center text-muted py-4">
+              <td colspan=100%" class="text-center text-muted py-4">
                 No words found.
               </td>
             </tr>

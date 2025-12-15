@@ -1,4 +1,4 @@
-// static/quiz/js/words/words_bulk.js (or similar)
+// static/quiz/js/words/words_bulk.js
 
 window.initWordsBulk = function () {
   const tableBody = document.getElementById("word-table-body");
@@ -8,23 +8,18 @@ window.initWordsBulk = function () {
 
   if (!tableBody || !bulkDeleteBtn || !selectAllCheckbox) return;
 
-  // --- Helpers --------------------------------------------------------
-
-  // Collect selected word IDs
   function getSelectedIds() {
     return [...tableBody.querySelectorAll("tr[data-id]")]
       .filter((row) => row.querySelector(".word-checkbox")?.checked)
-      .map((row) => row.dataset.id);
+      .map((row) => row.dataset.id)
+      .filter(Boolean);
   }
 
-  // Update the "Showing X words" counter based on current table rows
   function updateWordCountFromTable() {
     if (!wordCountNumber) return;
-    const rows = tableBody.querySelectorAll("tr[data-id]");
-    wordCountNumber.textContent = rows.length;
+    wordCountNumber.textContent = tableBody.querySelectorAll("tr[data-id]").length;
   }
 
-  // UI state update for button + select-all
   function updateState() {
     const ids = getSelectedIds();
 
@@ -38,94 +33,64 @@ window.initWordsBulk = function () {
       bulkDeleteBtn.textContent = "Delete selected";
     }
 
-    const allCheckboxes = tableBody.querySelectorAll(".word-checkbox");
+    const allCheckboxes = [...tableBody.querySelectorAll(".word-checkbox")];
     selectAllCheckbox.checked =
-      allCheckboxes.length &&
-      [...allCheckboxes].every((cb) => cb.checked);
+      allCheckboxes.length > 0 && allCheckboxes.every((cb) => cb.checked);
 
-    // Count is based on rows, so this is safe to call here as well
     updateWordCountFromTable();
   }
 
-  // --- Select-all toggle ----------------------------------------------
-
   selectAllCheckbox.addEventListener("change", () => {
     const checked = selectAllCheckbox.checked;
-    tableBody.querySelectorAll(".word-checkbox").forEach((cb) => {
-      cb.checked = checked;
-    });
+    tableBody.querySelectorAll(".word-checkbox").forEach((cb) => (cb.checked = checked));
     updateState();
   });
 
-  // --- Individual checkbox change ------------------------------------
-
   tableBody.addEventListener("change", (e) => {
-    if (e.target.classList.contains("word-checkbox")) {
-      updateState();
-    }
+    if (e.target.classList.contains("word-checkbox")) updateState();
   });
-
-  // --- One-request bulk delete ---------------------------------------
 
   bulkDeleteBtn.addEventListener("click", async () => {
     const ids = getSelectedIds();
-
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} word(s)?`)) return;
 
-    try {
-      const response = await fetch("/word_list/bulk_delete/", {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": getCSRFToken(),
-          "X-Requested-With": "XMLHttpRequest",
-          "Content-Type": "application/json",
-        },
-        credentials: "same-origin",
-        body: JSON.stringify({ ids }),
-      });
+    const res = await fetch("/word_list/bulk_delete/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": window.getCSRFToken?.() || "",
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/json",
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ ids }),
+    });
 
-      const data = await response.json();
+    const data = await res.json().catch(() => null);
 
-      if (!response.ok || !data.success) {
-        alert(data.error || "Bulk delete failed.");
-        return;
-      }
-
-      // Optimistic UI removal (no reload)
-      ids.forEach((id) => {
-        const row = tableBody.querySelector(`tr[data-id="${id}"]`);
-        if (row) row.remove();
-      });
-
-      // If table is now empty, show "No words found."
-      const remainingRows = tableBody.querySelectorAll("tr[data-id]");
-      if (!remainingRows.length) {
-        tableBody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted py-4">
-              No words found.
-            </td>
-          </tr>
-        `;
-      }
-
-      // Update button state + select-all + word count
-      updateState();
-
-      // (Optional) If you prefer to re-fetch from backend instead of
-      // relying on DOM, you could do this instead:
-      // window.searchWords?.();
-
-    } catch (err) {
-      console.error("Bulk delete error:", err);
-      alert("Network error while deleting words.");
+    if (!res.ok || !data?.success) {
+      alert(data?.error || "Bulk delete failed.");
+      return;
     }
+
+    ids.forEach((id) => {
+      tableBody.querySelector(`tr[data-id="${CSS.escape(id)}"]`)?.remove();
+    });
+
+    if (!tableBody.querySelector("tr[data-id]")) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            No words found.
+          </td>
+        </tr>
+      `;
+    }
+
+    selectAllCheckbox.checked = false;
+    updateState();
   });
 
-  // Expose for other modules (used by words_search.js)
   window.updateBulkDeleteState = updateState;
-
-  // Initial state
   updateState();
 };

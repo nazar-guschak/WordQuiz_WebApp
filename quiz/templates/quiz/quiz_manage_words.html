@@ -31,13 +31,14 @@
   {# main table / filters #}
   {% include "quiz/partials/manage/_quiz_words_table.html" %}
 
-  {# modal for adding words #}
+  {# modal for adding/editing words #}
   {% include "quiz/partials/manage/_add_words_modal.html" %}
+  {% include "quiz/partials/words/_word_modals.html" %}
 
 </div> <!-- /container -->
 {% endblock %}
 
 {% block extra_js %}
-<!--  <script src="{% static 'quiz/js/quiz_manage_words.js' %}"></script>-->
-<script type="module" src="{% static 'quiz/js/manage/quiz_manage_words.js' %}"></script>
+  <script src="{% static 'quiz/js/words/words_edit.js' %}"></script>
+  <script type="module" src="{% static 'quiz/js/manage/quiz_manage_words.js' %}"></script>
 {% endblock %}
