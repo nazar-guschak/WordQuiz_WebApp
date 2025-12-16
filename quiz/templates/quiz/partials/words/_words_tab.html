@@ -42,7 +42,7 @@
       <div class="col-12 col-lg-3">
         <select id="language-filter" class="form-select">
           <option value="" {% if not selected_language %}selected{% endif %}>
-            All languages
+            Всі мови
           </option>
 
           {% for code, name in language_choices %}
@@ -58,7 +58,7 @@
             value="__unknown__"
             {% if selected_language == "__unknown__" %}selected{% endif %}
           >
-            Unknown language
+            Інші
           </option>
         </select>
 
@@ -198,7 +198,7 @@
           {% empty %}
             <tr>
               <td colspan=100%" class="text-center text-muted py-4">
-                No words found.
+                Слів не знайдено.
               </td>
             </tr>
           {% endfor %}

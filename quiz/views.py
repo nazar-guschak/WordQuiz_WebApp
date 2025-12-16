@@ -93,6 +93,16 @@ def quiz(request):
     has_multiple_languages = len(quiz_languages) > 1
 
     # ---------------- SELECTION MODE ----------------
+    if quiz_id:
+        quiz = get_object_or_404(CustomQuiz, id=quiz_id)
+
+        if quiz.words.count() < 4:
+            messages.warning(
+                request,
+                "This quiz has fewer than 4 words. Add more words to start it."
+            )
+            return redirect("quiz:word_list")
+
     if not start:
         return render(request, "quiz/quiz.html", {
             "quiz_started": False,

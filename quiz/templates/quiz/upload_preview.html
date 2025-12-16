@@ -4,7 +4,12 @@
 {% block content %}
 <div class="container my-4">
 
-  <h1 class="mb-3">Preview import</h1>
+    <div class="mb-3">
+      <h1 class="mb-1">Preview import</h1>
+      <div class="text-muted small">
+        Total words: <strong>{{ rows|length }}</strong>
+      </div>
+    </div>
 
   {# ----- Banner logic (truthful + non-contradicting) ----- #}
   {% with unknown_count=0 %}
@@ -45,11 +50,11 @@
     <div class="card-body">
 
       {% if rows %}
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
+        <div class="table-responsive ws-import-table">
+          <table class="table align-middle mb-0 ws-import-preview-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th class="ws-import-col-index">#</th>
                 <th>Original</th>
                 <th>Translation</th>
                 <th>Language</th>
@@ -58,7 +63,7 @@
             <tbody>
               {% for row in rows %}
                 <tr class="{% if row.unknown_language %}table-warning{% endif %}">
-                  <td>{{ forloop.counter }}</td>
+                  <td class="ws-import-col-index">{{ forloop.counter }}</td>
                   <td>{{ row.original_word }}</td>
                   <td>{{ row.translation }}</td>
                   <td>
@@ -81,27 +86,39 @@
     </div>
   </div>
 
-  {% if rows %}
-    <div class="d-flex justify-content-between mt-3">
-      <a
-        href="{% url 'quiz:upload_words' %}{% if quiz %}?quiz_id={{ quiz.id }}{% endif %}"
-        class="btn btn-ws-base btn-ws-ghost text-nowrap"
-      >
-        Start over
-      </a>
+      {% if rows %}
+      <div class="import-sticky-bar">
+        <div class="import-sticky-inner">
 
-      <form method="post" action="{% url 'quiz:confirm_import' %}" class="m-0">
-        {% csrf_token %}
-        {% if quiz %}
-          <input type="hidden" name="quiz_id" value="{{ quiz.id }}">
-        {% endif %}
-        <button type="submit" class="btn btn-ws-base btn-ws-success text-nowrap">
-          <i class="bi bi-plus-square me-1"></i>
-          Import words
-        </button>
-      </form>
-    </div>
-  {% endif %}
+          <a
+            href="{% url 'quiz:upload_words' %}{% if quiz %}?quiz_id={{ quiz.id }}{% endif %}"
+            class="btn btn-ws-base btn-ws-ghost text-nowrap"
+          >
+            Start over
+          </a>
+
+          <form
+            method="post"
+            action="{% url 'quiz:confirm_import' %}"
+            class="m-0"
+          >
+            {% csrf_token %}
+            {% if quiz %}
+              <input type="hidden" name="quiz_id" value="{{ quiz.id }}">
+            {% endif %}
+
+            <button
+              type="submit"
+              class="btn btn-ws-base btn-ws-success text-nowrap"
+            >
+              <i class="bi bi-plus-square me-1"></i>
+              Import words
+            </button>
+          </form>
+
+        </div>
+      </div>
+    {% endif %}
 
 </div>
 {% endblock %}

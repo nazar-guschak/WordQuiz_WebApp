@@ -77,13 +77,15 @@
 
                                 {# ▶ Start quiz #}
                                 <button
-                                    type="button"
-                                    class="btn-ws-icon start"
-                                    title="Start quiz"
-                                    aria-label="Start quiz"
-                                    onclick="window.location.href='{% url 'quiz:quiz' %}?start=1&quiz_id={{ quiz.id }}'">
-                                    <i class="bi bi-play-circle"></i>
+                                  type="button"
+                                  class="btn-ws-icon start js-start-quiz"
+                                  title="Start quiz"
+                                  aria-label="Start quiz"
+                                  data-quiz-id="{{ quiz.id }}"
+                                  data-word-count="{{ quiz.words.count }}">
+                                  <i class="bi bi-play-circle"></i>
                                 </button>
+
 
                                 {# ✏ Edit #}
                                 <button

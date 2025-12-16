@@ -11,13 +11,33 @@ from django.db import models
 
 
 class Word(models.Model):
+    # LANGUAGE_CHOICES = [
+    #     ("de", "German"),
+    #     ("en", "English"),
+    #     ("uk", "Ukrainian"),
+    #     ("pl", "Polish"),
+    #     ("fr", "French"),
+    #     ("es", "Spanish"),
+    # ]
+
     LANGUAGE_CHOICES = [
-        ("de", "German"),
-        ("en", "English"),
-        ("uk", "Ukrainian"),
-        ("pl", "Polish"),
-        ("fr", "French"),
-        ("es", "Spanish"),
+        ("de", "Німецька"),
+        ("en", "Англійська"),
+        ("uk", "Українська"),
+        ("pl", "Польська"),
+        ("fr", "Французька"),
+        ("es", "Іспанська"),
+        ("it", "Італійська"),
+        ("pt", "Португальська"),
+        ("nl", "Нідерландська"),
+        ("sv", "Шведська"),
+        ("no", "Норвезька"),
+        ("da", "Данська"),
+        ("fi", "Фінська"),
+        ("cs", "Чеська"),
+        ("sk", "Словацька"),
+        ("hu", "Угорська"),
+        ("ro", "Румунська"),
     ]
 
     owner = models.ForeignKey(

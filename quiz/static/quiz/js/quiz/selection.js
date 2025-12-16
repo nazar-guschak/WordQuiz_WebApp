@@ -94,9 +94,7 @@ export function initQuizSelection() {
           : "this quiz";
 
         message =
-          `The selected quiz (“${quizName}”) has only ${count} word(s). ` +
-          `You need at least 4 words to start this quiz. ` +
-          `Please add more words to it first.`;
+          `Додайте принаймні 4 слова, щоб почати цей тест. `;
       }
 
       warningBox.textContent = message;
